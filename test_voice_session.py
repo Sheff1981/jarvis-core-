@@ -49,6 +49,18 @@ class VoiceSessionTests(unittest.TestCase):
         self.assertTrue(any(kind == "error" and "simulated failure" in value
                             for kind, value in events))
 
+    def test_empty_transcriptions_are_ignored(self):
+        class Input:
+            def listen(self, on_text, stop_event, should_listen=None):
+                on_text("")
+                on_text("   ")
+                on_text("стоп")
+                stop_event.wait(1)
+        events = []
+        session = VoiceSession(FakeAssistant(), Input())
+        session.run(lambda kind, value: events.append((kind, value)))
+        self.assertEqual([("heard", "стоп")], [e for e in events if e[0] == "heard"])
+
     def test_routes_voice_and_stops(self):
         events = []
         session = VoiceSession(FakeAssistant(), FakeMicrophone())
