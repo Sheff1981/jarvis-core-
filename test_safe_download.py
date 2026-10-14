@@ -40,6 +40,29 @@ class DownloadSafetyTests(unittest.TestCase):
                     manager.download(approval.token, url, "archive.zip")
             self.assertEqual(b"original", target.read_bytes())
 
+    def test_partial_transfer_leaves_no_file(self):
+        from pathlib import Path
+        from unittest.mock import MagicMock
+        url = "https://example.com/archive.zip"
+        with tempfile.TemporaryDirectory() as folder:
+            manager = DownloadManager(folder)
+            response = MagicMock()
+            response.status = 200
+            response.getheader.return_value = "12"
+            response.read.side_effect = [b"short", b""]
+            connection = MagicMock()
+            connection.getresponse.return_value = response
+            with patch("jarvis.safe_download.validate_url", return_value=url):
+                with patch("jarvis.safe_download.socket.getaddrinfo", return_value=[
+                    (2, 1, 6, "", ("93.184.215.14", 443))
+                ]):
+                    with patch("jarvis.safe_download.PinnedHTTPSConnection", return_value=connection):
+                        request = manager.propose(url)
+                        manager.gate.approve(request.token)
+                        with self.assertRaisesRegex(ValueError, "Incomplete download"):
+                            manager.download(request.token, url, "archive.zip")
+            self.assertEqual([], list(Path(folder).iterdir()))
+
     def test_requires_approval(self):
         with tempfile.TemporaryDirectory() as directory:
             manager = DownloadManager(directory)
