@@ -9,6 +9,11 @@ class ActionDialogue:
         self.actions = actions if actions is not None else WindowsActions()
         self.pending = None
 
+    def _log(self, request, status):
+        store = self.actions.audit_store
+        if store is not None:
+            store.record(request.operation, request.target, status)
+
     def respond(self, phrase):
         phrase = phrase.strip()
         if self.pending is not None:
@@ -16,6 +21,7 @@ class ActionDialogue:
             self.pending = None
             if phrase.casefold() in ("разрешаю", "подтверждаю", "да, разрешаю", "да разрешаю"):
                 if not self.actions.gate.approve(request.token):
+                    self._log(request, "expired")
                     return "Разрешение больше не действует."
                 try:
                     result = self.actions.execute(
@@ -34,6 +40,7 @@ class ActionDialogue:
                     f"папка: {'да' if result['is_dir'] else 'нет'}."
                 )
             self.actions.gate.deny(request.token)
+            self._log(request, "denied")
             return "Действие отменено. Для новой операции нужен новый запрос."
 
         match = re.fullmatch(
@@ -75,6 +82,7 @@ class ActionDialogue:
                           "проводник": "explorer"}[target.casefold()]
             request = self.actions.propose(operation, target)
             self.pending = request
+            self._log(request, "requested")
             return (
                 f"Разрешаешь действие {operation} для {request.target}? "
                 "Ответь «разрешаю» или «нет». Разрешение действует 60 секунд."
