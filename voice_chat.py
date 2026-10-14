@@ -35,7 +35,8 @@ def main():
     parser.add_argument("--model", required=True, help="Extracted Vosk Russian model directory")
     parser.add_argument("--llm-model", default="qwen2.5:3b")
     parser.add_argument("--db", default="jarvis.db")
-    parser.add_argument("--require-wake-word", action="store_true")
+    parser.add_argument("--always-listen", action="store_true",
+                        help="Opt in to processing speech without wake-word activation")
     parser.add_argument("--speak", action="store_true")
     parser.add_argument("--tray", action="store_true", help="Show a system tray with mute and exit")
     args = parser.parse_args()
@@ -51,7 +52,7 @@ def main():
         try:
             assistant = Assistant(db_path=args.db, model=args.llm_model)
             speaker = Speaker(enabled=args.speak)
-            router = WakeAssistant(assistant) if args.require_wake_word else assistant
+            router = assistant if args.always_listen else WakeAssistant(assistant)
             session = VoiceSession(router, VoiceInput(args.model), controller=controller)
 
             def show_event(kind, value):
