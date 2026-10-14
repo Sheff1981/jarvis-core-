@@ -16,13 +16,18 @@ MAX_BYTES = 100 * 1024 * 1024
 
 
 def validate_url(url):
+    if not isinstance(url, str) or any(ord(ch) < 33 or ord(ch) == 127 for ch in url):
+        raise ValueError("Invalid URL characters")
     parsed = urlsplit(url)
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.port not in (None, 443):
+    if parsed.fragment or parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.port not in (None, 443):
         raise ValueError("Only public HTTPS URLs on port 443 are permitted")
     host = parsed.hostname
     if host.lower() == "localhost" or host.lower().endswith(".localhost"):
         raise ValueError("Local hosts are prohibited")
-    for record in socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM):
+    records = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
+    if not records:
+        raise ValueError("Host has no addresses")
+    for record in records:
         address = ipaddress.ip_address(record[4][0])
         if not address.is_global:
             raise ValueError("Nonpublic network addresses are prohibited")
@@ -81,6 +86,10 @@ class DownloadManager:
                     response = connection.getresponse()
                     if response.status != 200:
                         raise ValueError("Unexpected HTTP status or redirect")
+                    length = response.getheader("Content-Length")
+                    if length is not None:
+                        if not length.isdecimal() or int(length) > MAX_BYTES:
+                            raise ValueError("Invalid or excessive Content-Length")
                     while True:
                         chunk = response.read(min(65536, MAX_BYTES + 1 - count))
                         if not chunk:
@@ -90,6 +99,8 @@ class DownloadManager:
                             raise ValueError("Download exceeds 100 MiB")
                         digest.update(chunk)
                         output.write(chunk)
+                    if length is not None and count != int(length):
+                        raise ValueError("Incomplete download")
                 finally:
                     connection.close()
             # Atomic no-overwrite publication; destination must not already exist.
