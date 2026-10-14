@@ -12,6 +12,7 @@ class VoiceSession:
         self.events = queue.Queue()
         self.stop_event = threading.Event()
         self.busy_event = threading.Event()
+        self.capture_finished = threading.Event()
 
     def listening_allowed(self):
         return (not self.stop_event.is_set() and not self.busy_event.is_set()
@@ -31,6 +32,7 @@ class VoiceSession:
             except Exception as exc:
                 self.events.put(("error", str(exc)))
             finally:
+                self.capture_finished.set()
                 self.events.put(("ended", ""))
 
         microphone = threading.Thread(target=capture, daemon=True)
@@ -42,6 +44,8 @@ class VoiceSession:
                 try:
                     kind, value = self.events.get(timeout=0.2)
                 except queue.Empty:
+                    if self.capture_finished.is_set():
+                        break
                     continue
                 if kind == "speech":
                     if not self.listening_allowed():
@@ -83,6 +87,9 @@ class VoiceSession:
                         for item in retained:
                             self.events.put(item)
                         self.busy_event.clear()
+                elif kind == "ended":
+                    if self.events.empty():
+                        break
                 else:
                     on_event(kind, value)
                     break
