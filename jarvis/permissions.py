@@ -60,8 +60,10 @@ class PermissionGate:
         """Consume authorization once, even if requested scope mismatches."""
         with self._lock:
             request = self._approved.pop(token, None)
+            if request is None:
+                return False
             deadline = self._deadlines.pop(token, 0)
-            return bool(request and time.monotonic() < deadline and request.operation == operation
+            return bool(time.monotonic() < deadline and request.operation == operation
                         and request.target == target)
 
     def revoke_all(self):
