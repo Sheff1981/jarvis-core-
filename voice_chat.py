@@ -1,10 +1,21 @@
-"""Voice input with optional local LLM and the same persistent project memory."""
+"""Voice input through shared Assistant and VoiceSession, with optional wake gate."""
 import argparse
-import queue
-import threading
 
 from jarvis.assistant import Assistant
 from jarvis.voice import VoiceInput
+from jarvis.voice_session import VoiceSession
+from jarvis.wake_word import extract_command
+
+
+class WakeAssistant:
+    def __init__(self, assistant):
+        self.assistant = assistant
+
+    def respond(self, phrase):
+        activated, command = extract_command(phrase)
+        if not activated:
+            return None
+        return self.assistant.respond(command)
 
 
 def main():
@@ -12,45 +23,29 @@ def main():
     parser.add_argument("--model", required=True, help="Extracted Vosk Russian model directory")
     parser.add_argument("--llm-model", default="qwen2.5:3b", help="Local Ollama model name")
     parser.add_argument("--db", default="jarvis.db")
+    parser.add_argument("--require-wake-word", action="store_true",
+                        help="Ignore speech unless it begins with JARVIS/Chat")
     args = parser.parse_args()
 
-    events = queue.Queue()
-    stop = threading.Event()
     assistant = Assistant(db_path=args.db, model=args.llm_model)
+    router = WakeAssistant(assistant) if args.require_wake_word else assistant
 
-    def capture():
-        try:
-            VoiceInput(args.model).listen(lambda phrase: events.put(("speech", phrase)), stop)
-        except Exception as exc:
-            events.put(("error", str(exc)))
-        finally:
-            events.put(("ended", ""))
-
-    microphone = threading.Thread(target=capture, daemon=True)
-    try:
-        microphone.start()
-        print("JARVIS: Слушаю. Скажи 'стоп' или нажми Ctrl+C.", flush=True)
-        while not stop.is_set():
-            try:
-                kind, value = events.get(timeout=0.2)
-            except queue.Empty:
-                continue
-            if kind == "error":
-                print(f"JARVIS: Ошибка микрофона: {value}", flush=True)
-                break
-            if kind == "ended":
-                print("JARVIS: Голосовой ввод завершён.", flush=True)
-                break
+    def show_event(kind, value):
+        if kind == "heard":
             print("Вы:", value, flush=True)
-            answer = assistant.respond(value)
-            print("JARVIS:", answer, flush=True)
-            if answer == "Останавливаюсь.":
-                stop.set()
+        elif kind == "answer" and value is not None:
+            print("JARVIS:", value, flush=True)
+        elif kind == "error":
+            print("JARVIS: Ошибка микрофона:", value, flush=True)
+        elif kind == "ended":
+            print("JARVIS: Голосовой ввод завершён.", flush=True)
+
+    try:
+        print("JARVIS: Слушаю. Для остановки нажми Ctrl+C.", flush=True)
+        VoiceSession(router, VoiceInput(args.model)).run(show_event)
     except KeyboardInterrupt:
         pass
     finally:
-        stop.set()
-        microphone.join(timeout=2)
         assistant.close()
         print("JARVIS: Микрофон выключен.", flush=True)
 
