@@ -20,11 +20,11 @@ class ModelTests(unittest.TestCase):
             def __enter__(self): return self
             def __exit__(self, *args): return False
             def read(self, size): return json.dumps({"message": {"content": "Привет!"}}).encode()
-        with patch("urllib.request.urlopen", return_value=Response()) as call:
+        with patch("jarvis.local_model.open_local", return_value=Response()) as call:
             self.assertEqual(Ollama().reply([{"role": "user", "content": "Привет"}]), "Привет!")
             self.assertEqual(call.call_args.kwargs["timeout"], 15)
 
     def test_unavailable_is_safe_error(self):
-        with patch("urllib.request.urlopen", side_effect=OSError("offline")):
+        with patch("jarvis.local_model.open_local", side_effect=OSError("offline")):
             with self.assertRaises(LocalModelError):
                 Ollama().reply([{"role": "user", "content": "Привет"}])
