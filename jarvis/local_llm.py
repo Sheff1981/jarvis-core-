@@ -48,6 +48,8 @@ class LocalLLM:
                 data = json.load(response)
         except (URLError, HTTPError, TimeoutError, OSError) as exc:
             raise RuntimeError("Локальная модель недоступна. Проверь Ollama и загрузку модели.") from exc
+        except (ValueError, UnicodeError) as exc:
+            raise RuntimeError("Локальная модель вернула повреждённый ответ.") from exc
         try:
             answer = data["message"]["content"].strip()
         except (KeyError, TypeError, AttributeError) as exc:
