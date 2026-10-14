@@ -12,10 +12,11 @@ from jarvis.permissions import PermissionGate
 
 
 class WindowsActions:
-    def __init__(self, gate=None):
+    def __init__(self, gate=None, audit_store=None):
         self.gate = gate if gate is not None else PermissionGate()
         self._lock = threading.Lock()
         self.audit = []
+        self.audit_store = audit_store
 
     def propose(self, operation, target):
         if operation not in ("list_directory", "file_info", "open_explorer", "open_app"):
@@ -67,6 +68,8 @@ class WindowsActions:
         return result
 
     def _record(self, operation, target, status, detail):
+        if self.audit_store is not None:
+            self.audit_store.record(operation, target, status, detail)
         with self._lock:
             self.audit.append({
                 "timestamp": time.time(), "operation": operation,
