@@ -31,51 +31,64 @@ def main():
     parser.add_argument("--tray", action="store_true", help="Show a system tray with mute and exit")
     args = parser.parse_args()
 
-    assistant = Assistant(db_path=args.db, model=args.llm_model)
-    speaker = Speaker(enabled=args.speak)
     controller = TrayController()
-    router = WakeAssistant(assistant) if args.require_wake_word else assistant
-    session = VoiceSession(router, VoiceInput(args.model), controller=controller)
+    worker_done = threading.Event()
 
-    def show_event(kind, value):
-        if kind == "heard":
-            print("Вы:", value, flush=True)
-        elif kind == "answer" and value is not None:
-            print("JARVIS:", value, flush=True)
-            try:
-                speaker.say(value)
-            except RuntimeError as exc:
-                print("JARVIS: Ошибка голоса:", exc, flush=True)
-        elif kind == "error":
-            print("JARVIS: Ошибка микрофона:", value, flush=True)
-            controller.request_exit()
-        elif kind == "ended":
-            print("JARVIS: Голосовой ввод завершён.", flush=True)
-            controller.request_exit()
+    def voice_worker():
+        # SQLite and Windows speech objects must be created and closed on
+        # their owning thread, not on the tray's GUI thread.
+        assistant = None
+        speaker = None
+        try:
+            assistant = Assistant(db_path=args.db, model=args.llm_model)
+            speaker = Speaker(enabled=args.speak)
+            router = WakeAssistant(assistant) if args.require_wake_word else assistant
+            session = VoiceSession(router, VoiceInput(args.model), controller=controller)
 
-    worker = None
-    try:
-        print("JARVIS: Слушаю. Для остановки нажми Ctrl+C.", flush=True)
-        if args.tray:
-            # Tray UI runs on the main thread; audio and SQLite stay on worker.
-            worker = threading.Thread(target=session.run, args=(show_event,), daemon=True)
-            worker.start()
-            try:
-                run_tray(controller)
-            finally:
-                session.request_stop()
-                worker.join(timeout=3)
-        else:
+            def show_event(kind, value):
+                if kind == "heard":
+                    print("Вы:", value, flush=True)
+                elif kind == "answer" and value is not None:
+                    print("JARVIS:", value, flush=True)
+                    try:
+                        speaker.say(value)
+                    except RuntimeError as exc:
+                        print("JARVIS: Ошибка голоса:", exc, flush=True)
+                elif kind == "error":
+                    print("JARVIS: Ошибка микрофона:", value, flush=True)
+                    controller.request_exit()
+                elif kind == "ended":
+                    print("JARVIS: Голосовой ввод завершён.", flush=True)
+                    controller.request_exit()
+
             session.run(show_event)
-    except KeyboardInterrupt:
-        session.request_stop()
-    finally:
-        session.request_stop()
-        if worker is not None and worker.is_alive():
-            worker.join(timeout=3)
-        speaker.close()
-        assistant.close()
-        print("JARVIS: Микрофон выключен.", flush=True)
+        except Exception as exc:
+            print("JARVIS: Ошибка запуска:", exc, flush=True)
+            controller.request_exit()
+        finally:
+            controller.request_exit()
+            try:
+                if speaker is not None:
+                    speaker.close()
+            finally:
+                if assistant is not None:
+                    assistant.close()
+                worker_done.set()
+                print("JARVIS: Микрофон выключен.", flush=True)
+
+    print("JARVIS: Голосовой режим запускается.", flush=True)
+    if args.tray:
+        worker = threading.Thread(target=voice_worker, daemon=False)
+        worker.start()
+        try:
+            run_tray(controller, worker_done=worker_done)
+        except KeyboardInterrupt:
+            controller.request_exit()
+        finally:
+            controller.request_exit()
+            worker.join(timeout=5)
+    else:
+        voice_worker()
 
 
 if __name__ == "__main__":
