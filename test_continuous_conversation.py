@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import Mock
 from voice_chat import WakeAssistant
+from jarvis.wake_word import extract_command
 
 
 class ContinuousConversationTests(unittest.TestCase):
@@ -22,6 +23,11 @@ class ContinuousConversationTests(unittest.TestCase):
         router = WakeAssistant(assistant, clock=lambda: 100)
         self.assertIsNone(router.respond("открой блокнот"))
         assistant.respond.assert_not_called()
+
+    def test_common_word_chat_does_not_activate(self):
+        self.assertEqual((False, ""), extract_command("чат"))
+        self.assertEqual((False, ""), extract_command("chat открой блокнот"))
+        self.assertEqual((True, "привет"), extract_command("джарвис привет"))
 
     def test_fresh_wake_reactivates(self):
         clock = [100]
