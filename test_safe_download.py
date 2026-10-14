@@ -5,6 +5,17 @@ from jarvis.safe_download import DownloadManager, validate_url
 
 
 class DownloadSafetyTests(unittest.TestCase):
+    def test_pinned_connection_uses_approved_address(self):
+        from jarvis.safe_download import PinnedHTTPSConnection
+        with patch("jarvis.safe_download.socket.create_connection") as connect:
+            with patch("jarvis.safe_download.ssl.create_default_context") as context:
+                connection = PinnedHTTPSConnection("example.com", "93.184.215.14")
+                connection.connect()
+                connect.assert_called_once_with(("93.184.215.14", 443), 20)
+                context.return_value.wrap_socket.assert_called_once_with(
+                    connect.return_value, server_hostname="example.com"
+                )
+
     def test_requires_approval(self):
         with tempfile.TemporaryDirectory() as directory:
             manager = DownloadManager(directory)
