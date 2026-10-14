@@ -38,6 +38,47 @@ class TorrentClient:
             raise ValueError("Unexpected torrent response")
         return result
 
+    @staticmethod
+    def _hash(value):
+        if not isinstance(value, str) or len(value) not in (40, 64):
+            raise ValueError("A full torrent infohash is required")
+        if any(ch not in "0123456789abcdefABCDEF" for ch in value):
+            raise ValueError("Invalid torrent infohash")
+        return value.lower()
+
+    def files(self, cookie, infohash):
+        from urllib.parse import quote
+        infohash = self._hash(infohash)
+        body, _ = self._request("/api/v2/torrents/files?hash=" + quote(infohash), cookie=cookie)
+        files = json.loads(body.decode("utf-8"))
+        if not isinstance(files, list):
+            raise ValueError("Invalid torrent file list")
+        return files
+
+    def set_file_priority(self, cookie, infohash, indices, priority):
+        infohash = self._hash(infohash)
+        if not isinstance(indices, (list, tuple)) or not indices or any(
+            type(index) is not int or index < 0 for index in indices
+        ):
+            raise ValueError("File indices must be nonnegative integers")
+        if priority not in (0, 1, 6, 7):
+            raise ValueError("Unsupported file priority")
+        payload = {"hash": infohash, "id": "|".join(map(str, indices)), "priority": str(priority)}
+        body, _ = self._request("/api/v2/torrents/filePrio", payload, cookie)
+        if body.strip():
+            raise RuntimeError("Torrent client rejected file priority")
+        return True
+
+    def set_paused(self, cookie, infohash, paused):
+        infohash = self._hash(infohash)
+        if type(paused) is not bool:
+            raise ValueError("Paused must be a boolean")
+        endpoint = "/api/v2/torrents/pause" if paused else "/api/v2/torrents/resume"
+        body, _ = self._request(endpoint, {"hashes": infohash}, cookie)
+        if body.strip():
+            raise RuntimeError("Torrent client rejected state change")
+        return True
+
     def add_magnet(self, cookie, magnet, save_path=None):
         if not isinstance(magnet, str) or not magnet.startswith("magnet:?xt=urn:btih:"):
             raise ValueError("Only BitTorrent infohash magnet links are accepted")
