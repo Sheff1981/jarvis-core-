@@ -1,16 +1,28 @@
 """A conservative conversational layer with short-lived project context."""
 import re
 from jarvis.projects import Projects
+from jarvis.session import Session, Mode
 
 
 class Dialogue:
     def __init__(self, db_path="jarvis.db"):
         self.projects = Projects(db_path)
         self.pending_project_id = None
+        self.session = Session()
 
     def respond(self, utterance):
         text = utterance.strip()
         normalized = text.casefold()
+        if text:
+            self.session.append('user', text)
+        if normalized in ('режим беседы', 'разговорный режим', 'давай просто поговорим'):
+            self.pending_project_id = None
+            self.session.switch(Mode.CONVERSATION)
+            return 'Перешёл в разговорный режим. Действия с компьютером отключены.'
+        if normalized in ('рабочий режим', 'режим работы'):
+            self.pending_project_id = None
+            self.session.switch(Mode.WORK)
+            return 'Рабочий режим включён. Каждое действие потребует отдельного разрешения.'
         if not text:
             return "Я слушаю."
         if normalized in ("стоп", "джарвис стоп", "джарвис, стоп", "выход"):
