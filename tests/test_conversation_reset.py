@@ -30,5 +30,23 @@ class ConversationResetTests(unittest.TestCase):
                 self.assertEqual(assistant.conversations.search("музыке"), [])
                 self.assertEqual(assistant.dialogue.conversation.recent(), [])
                 self.assertEqual(assistant.llm.history, [])
+                self.assertEqual(assistant.dialogue.session.history, [])
+            finally:
+                assistant.close()
+
+    def test_spoken_clear_in_chat_mode_clears_memory_without_llm(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = str(Path(folder) / "jarvis.db")
+            model = StubModel()
+            assistant = Assistant(db_path=path, llm=model)
+            try:
+                assistant.respond("Расскажи о музыке")
+                self.assertTrue(assistant.conversations.search("музыке"))
+                assistant.respond("режим разговора")
+                answer = assistant.respond("забудь наш разговор")
+                self.assertIn("удалена", answer)
+                self.assertEqual(assistant.conversations.search("музыке"), [])
+                self.assertEqual(model.history, [])
+                self.assertEqual(assistant.dialogue.session.history, [])
             finally:
                 assistant.close()
