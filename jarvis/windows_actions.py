@@ -9,6 +9,7 @@ import threading
 import time
 
 from jarvis.permissions import PermissionGate
+from jarvis.windows_perception import list_visible_windows
 
 
 class WindowsActions:
@@ -19,21 +20,25 @@ class WindowsActions:
         self.audit_store = audit_store
 
     def propose(self, operation, target):
-        if operation not in ("list_directory", "file_info", "open_explorer", "open_app"):
+        if operation not in ("list_directory", "file_info", "open_explorer", "open_app", "list_windows"):
             raise ValueError("Operation is not supported")
-        path = (target.strip().casefold() if operation == "open_app" else
+        path = (target.strip().casefold() if operation in ("open_app", "list_windows") else
                 str(Path(target).expanduser().resolve(strict=False)))
         if operation == "open_app" and path not in ("notepad", "calculator", "explorer"):
             raise ValueError("Application is not in the approved catalog")
         return self.gate.propose(operation, path, f"{operation}: {path}")
 
     def execute(self, token, operation, target):
-        path = (target.strip().casefold() if operation == "open_app" else
+        path = (target.strip().casefold() if operation in ("open_app", "list_windows") else
                 str(Path(target).expanduser().resolve(strict=False)))
         if not self.gate.consume(token, operation, path):
             raise PermissionError("Explicit approval is required")
         try:
-            if operation == "list_directory":
+            if operation == "list_windows":
+                if path != "desktop":
+                    raise ValueError("Invalid desktop target")
+                result = list_visible_windows()
+            elif operation == "list_directory":
                 directory = Path(path)
                 if not directory.is_dir():
                     raise NotADirectoryError(path)
