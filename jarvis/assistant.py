@@ -40,6 +40,8 @@ class Assistant:
         phrase = phrase.strip()
         mode_reply = self.modes.switch(phrase)
         if mode_reply is not None:
+            if hasattr(self.llm, 'mode'):
+                self.llm.mode = self.modes.mode
             if self.modes.mode == 'chat':
                 self.action_dialogue.close()
             return mode_reply
