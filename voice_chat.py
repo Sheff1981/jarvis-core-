@@ -1,7 +1,8 @@
-"""Voice input through shared Assistant and VoiceSession, with optional wake gate."""
+"""Voice input and optional offline speech output through the shared assistant."""
 import argparse
 
 from jarvis.assistant import Assistant
+from jarvis.speech import Speaker
 from jarvis.voice import VoiceInput
 from jarvis.voice_session import VoiceSession
 from jarvis.wake_word import extract_command
@@ -25,9 +26,12 @@ def main():
     parser.add_argument("--db", default="jarvis.db")
     parser.add_argument("--require-wake-word", action="store_true",
                         help="Ignore speech unless it begins with JARVIS/Chat")
+    parser.add_argument("--speak", action="store_true",
+                        help="Enable offline speech output (requires pyttsx3)")
     args = parser.parse_args()
 
     assistant = Assistant(db_path=args.db, model=args.llm_model)
+    speaker = Speaker(enabled=args.speak)
     router = WakeAssistant(assistant) if args.require_wake_word else assistant
 
     def show_event(kind, value):
@@ -35,6 +39,10 @@ def main():
             print("Вы:", value, flush=True)
         elif kind == "answer" and value is not None:
             print("JARVIS:", value, flush=True)
+            try:
+                speaker.say(value)
+            except RuntimeError as exc:
+                print("JARVIS: Ошибка голоса:", exc, flush=True)
         elif kind == "error":
             print("JARVIS: Ошибка микрофона:", value, flush=True)
         elif kind == "ended":
@@ -46,6 +54,7 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
+        speaker.close()
         assistant.close()
         print("JARVIS: Микрофон выключен.", flush=True)
 
