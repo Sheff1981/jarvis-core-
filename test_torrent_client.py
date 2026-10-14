@@ -57,6 +57,18 @@ class TorrentClientTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 client.progress("SID=local")
 
+    def test_magnet_rejects_missing_or_duplicate_hash(self):
+        for uri in ("magnet:?xt=urn:btih:short",
+                    "magnet:?dn=example",
+                    "magnet:?xt=urn:btih:" + "a" * 40 + "&xt=urn:btih:" + "b" * 40):
+            with self.subTest(uri=uri):
+                with self.assertRaises(ValueError):
+                    TorrentClient.validate_magnet(uri)
+
+    def test_magnet_accepts_base32_infohash(self):
+        uri = "magnet:?xt=urn:btih:" + "A" * 32
+        self.assertEqual(TorrentClient.validate_magnet(uri), uri)
+
     def test_only_loopback_endpoint(self):
         with self.assertRaises(ValueError):
             TorrentClient("http://192.168.1.10:8080")
