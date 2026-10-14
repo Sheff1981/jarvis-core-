@@ -23,14 +23,21 @@ def _russian_voice(voice):
 
 class Speaker:
     def __init__(self, enabled=False, rate=175, backend="sapi",
-                 piper_exe=None, voice_model=None):
+                 piper_exe=None, voice_model=None,
+                 piper_length_scale=1.0, piper_sentence_silence=0.0):
         if backend not in ("sapi", "piper"):
             raise ValueError("Unsupported offline speech backend")
+        if not isinstance(piper_length_scale, (int, float)) or not 0.7 <= piper_length_scale <= 1.6:
+            raise ValueError("Piper length scale must be between 0.7 and 1.6")
+        if not isinstance(piper_sentence_silence, (int, float)) or not 0 <= piper_sentence_silence <= 2:
+            raise ValueError("Piper sentence silence must be between 0 and 2 seconds")
         self.enabled = enabled
         self.rate = rate
         self.backend = backend
         self.piper_exe = piper_exe
         self.voice_model = voice_model
+        self.piper_length_scale = float(piper_length_scale)
+        self.piper_sentence_silence = float(piper_sentence_silence)
         self._engine = None
 
     def say(self, message):
@@ -83,9 +90,11 @@ class Speaker:
                     str(binary), "--model", str(model),
                     "--config", str(model) + ".json",
                     "--output_file", str(wav),
+                    "--length_scale", str(self.piper_length_scale),
+                    "--sentence_silence", str(self.piper_sentence_silence),
                 ]
                 subprocess.run(
-                    command, input=(message[:1200].strip() + "\n").encode("utf-8"),
+                    command, input=(message.strip() + "\n").encode("utf-8"),
                     stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
                     timeout=60, check=True,
                     creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
