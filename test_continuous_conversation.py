@@ -19,7 +19,8 @@ class ContinuousConversationTests(unittest.TestCase):
 
     def test_fresh_wake_reactivates(self):
         clock = [100]
-        assistant = Mock(return_value="ok")
+        assistant = Mock()
+        assistant.respond.return_value = "ok"
         router = WakeAssistant(assistant, idle_seconds=300, clock=lambda: clock[0])
         router.respond("джарвис привет")
         clock[0] += 301
