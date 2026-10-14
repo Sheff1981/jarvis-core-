@@ -2,7 +2,6 @@
 import json
 from urllib.parse import urlencode
 from urllib.request import Request, build_opener, ProxyHandler
-from urllib.error import URLError
 
 
 class TorrentClient:
@@ -21,6 +20,16 @@ class TorrentClient:
         opener = build_opener(ProxyHandler({}))
         with opener.open(request, timeout=self.timeout) as response:
             return response.read(), response.headers.get("Set-Cookie", "")
+
+    def login(self, username, password):
+        if not isinstance(username, str) or not username or not isinstance(password, str) or not password:
+            raise ValueError("Credentials are required")
+        body, cookie = self._request(
+            "/api/v2/auth/login", {"username": username, "password": password}
+        )
+        if body.strip() != b"Ok." or not cookie.startswith("SID="):
+            raise PermissionError("qBittorrent authentication failed")
+        return cookie.split(";", 1)[0]
 
     def list_torrents(self, cookie):
         body, _ = self._request("/api/v2/torrents/info", cookie=cookie)
