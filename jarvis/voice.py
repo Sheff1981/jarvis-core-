@@ -19,6 +19,7 @@ class VoiceInput:
         from vosk import Model, KaldiRecognizer
 
         model = Model(self.model_path)
+        failures = 0
         while not stop_event.is_set():
             if should_listen is not None and not should_listen():
                 stop_event.wait(0.1)
@@ -38,11 +39,23 @@ class VoiceInput:
                     ):
                         on_text(phrase)
 
-            with sd.RawInputStream(
-                samplerate=self.sample_rate, blocksize=8000,
-                dtype="int16", channels=1, callback=callback
-            ) as stream:
-                while not stop_event.wait(0.1):
-                    if should_listen is not None and not should_listen():
-                        stream.stop()
-                        break
+            try:
+                with sd.RawInputStream(
+                    samplerate=self.sample_rate, blocksize=8000,
+                    dtype="int16", channels=1, callback=callback
+                ) as stream:
+                    failures = 0
+                    while not stop_event.wait(0.1):
+                        if should_listen is not None and not should_listen():
+                            stream.stop()
+                            break
+            except (OSError, RuntimeError) as exc:
+                if stop_event.is_set():
+                    break
+                failures += 1
+                if failures >= 3:
+                    raise RuntimeError(
+                        "Микрофон недоступен после 3 попыток подключения"
+                    ) from exc
+                if stop_event.wait(0.5 * failures):
+                    break
