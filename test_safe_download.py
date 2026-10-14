@@ -63,6 +63,30 @@ class DownloadSafetyTests(unittest.TestCase):
                             manager.download(request.token, url, "archive.zip")
             self.assertEqual([], list(Path(folder).iterdir()))
 
+    def test_network_error_cleans_partial_file(self):
+        from pathlib import Path
+        from unittest.mock import MagicMock
+        url = "https://example.com/file.bin"
+        with tempfile.TemporaryDirectory() as folder:
+            manager = DownloadManager(folder)
+            response = MagicMock()
+            response.status = 200
+            response.getheader.return_value = None
+            response.read.side_effect = [b"partial", OSError("connection lost")]
+            connection = MagicMock()
+            connection.getresponse.return_value = response
+            with patch("jarvis.safe_download.validate_url", return_value=url):
+                with patch("jarvis.safe_download.socket.getaddrinfo", return_value=[
+                    (2, 1, 6, "", ("93.184.215.14", 443))
+                ]):
+                    with patch("jarvis.safe_download.PinnedHTTPSConnection", return_value=connection):
+                        request = manager.propose(url)
+                        manager.gate.approve(request.token)
+                        with self.assertRaises(OSError):
+                            manager.download(request.token, url, "file.bin")
+            self.assertEqual([], list(Path(folder).iterdir()))
+            connection.close.assert_called_once()
+
     def test_requires_approval(self):
         with tempfile.TemporaryDirectory() as directory:
             manager = DownloadManager(directory)
