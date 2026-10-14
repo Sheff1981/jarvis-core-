@@ -16,6 +16,16 @@ class DownloadSafetyTests(unittest.TestCase):
                     connect.return_value, server_hostname="example.com"
                 )
 
+    def test_rejects_fragment_and_control_characters(self):
+        for url in ("https://example.com/a#fragment", "https://example.com/\nheader"):
+            with self.assertRaises(ValueError):
+                validate_url(url)
+
+    def test_rejects_empty_dns_response(self):
+        with patch("jarvis.safe_download.socket.getaddrinfo", return_value=[]):
+            with self.assertRaisesRegex(ValueError, "no addresses"):
+                validate_url("https://example.com/file")
+
     def test_requires_approval(self):
         with tempfile.TemporaryDirectory() as directory:
             manager = DownloadManager(directory)
