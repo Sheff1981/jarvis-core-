@@ -51,6 +51,38 @@ class PiperSpeakerTests(unittest.TestCase):
         self.assertFalse(pathlib.Path(command[command.index("--output_file") + 1]).exists())
         self.assertTrue(self.model.exists())
 
+    def test_deliberate_pacing_and_unicode_without_clipping(self):
+        playback = MagicMock()
+        recorded = []
+        long_phrase = "Джарвис. " + "Проверяем полное произношение слов. " * 42
+
+        def fake_run(args, **kwargs):
+            recorded.append((args, kwargs))
+            output = pathlib.Path(args[args.index("--output_file") + 1])
+            output.write_bytes(b"RIFF" + b"x" * 80)
+            return subprocess.CompletedProcess(args, 0)
+
+        speaker = Speaker(
+            enabled=True, backend="piper",
+            piper_exe=str(self.exe), voice_model=str(self.model),
+            piper_length_scale=1.16, piper_sentence_silence=0.35,
+        )
+        with patch("subprocess.run", side_effect=fake_run), \
+             patch.dict(sys.modules, {"winsound": playback}):
+            self.assertTrue(speaker.say(long_phrase))
+        args, kwargs = recorded[0]
+        self.assertEqual(kwargs["input"], (long_phrase + "\n").encode("utf-8"))
+        self.assertEqual(args[args.index("--length_scale") + 1], "1.16")
+        self.assertEqual(args[args.index("--sentence_silence") + 1], "0.35")
+
+    def test_rejects_invalid_pacing(self):
+        for scale in (-1, 0, 0.6, 1.7, float("nan")):
+            with self.subTest(scale=scale), self.assertRaises(ValueError):
+                Speaker(backend="piper", piper_length_scale=scale)
+        for seconds in (-1, 3, float("nan")):
+            with self.subTest(seconds=seconds), self.assertRaises(ValueError):
+                Speaker(backend="piper", piper_sentence_silence=seconds)
+
     def test_missing_model_config_is_explicit_error(self):
         self.config.unlink()
         speaker = Speaker(enabled=True, backend="piper",
