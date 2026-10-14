@@ -8,6 +8,7 @@ from jarvis.conversation_store import ConversationStore
 from jarvis.dialogue import Dialogue
 from jarvis.facts import FactStore
 from jarvis.local_llm import LocalLLM
+from jarvis.modes import ModeController
 
 
 FACT_SAVE = re.compile(r"^для проекта (.+?) запомни(?:,? что)? (.+)$", re.IGNORECASE)
@@ -25,6 +26,7 @@ MEMORY_SEARCH = re.compile(
 
 class Assistant:
     def __init__(self, db_path="jarvis.db", model="qwen2.5:3b", llm=None):
+        self.modes = ModeController()
         self.dialogue = Dialogue(db_path)
         self.action_audit = ActionAudit(db_path)
         self.action_dialogue = ActionDialogue(WindowsActions(audit_store=self.action_audit))
@@ -36,6 +38,19 @@ class Assistant:
 
     def respond(self, phrase):
         phrase = phrase.strip()
+        mode_reply = self.modes.switch(phrase)
+        if mode_reply is not None:
+            if self.modes.mode == 'chat':
+                self.action_dialogue.close()
+            return mode_reply
+        if self.modes.mode == 'chat':
+            try:
+                reply = self.llm.ask(phrase)
+            except RuntimeError as exc:
+                return str(exc)
+            if reply:
+                self.conversations.append_exchange(phrase, reply)
+            return reply
         action_reply = self.action_dialogue.respond(phrase)
         if action_reply is not None:
             return action_reply
