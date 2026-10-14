@@ -49,6 +49,21 @@ class VoiceSessionTests(unittest.TestCase):
         self.assertTrue(any(kind == "error" and "simulated failure" in value
                             for kind, value in events))
 
+    def test_stopped_session_does_not_dispatch_queued_speech(self):
+        class Input:
+            def listen(self, on_text, stop_event, should_listen=None):
+                on_text("открой блокнот")
+                stop_event.wait(1)
+        seen = []
+        class Assistant:
+            def respond(self, phrase):
+                seen.append(phrase)
+                return "Понял."
+        session = VoiceSession(Assistant(), Input())
+        session.request_stop()
+        session.run(lambda kind, value: None)
+        self.assertEqual([], seen)
+
     def test_empty_transcriptions_are_ignored(self):
         class Input:
             def listen(self, on_text, stop_event, should_listen=None):
