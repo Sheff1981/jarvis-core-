@@ -29,7 +29,7 @@ class TrayController:
             return self._exit
 
 
-def run_tray(controller):
+def run_tray(controller, worker_done=None):
     """Run a visible tray icon. Call from the GUI thread on Windows."""
     import pystray
     from PIL import Image, ImageDraw
@@ -54,4 +54,14 @@ def run_tray(controller):
         ),
         pystray.MenuItem("Завершить JARVIS", quit_app),
     )
-    pystray.Icon("jarvis-local", image, "JARVIS Local", menu).run()
+    icon = pystray.Icon("jarvis-local", image, "JARVIS Local", menu)
+
+    def watch_worker():
+        if worker_done is not None:
+            worker_done.wait()
+            controller.request_exit()
+            icon.stop()
+
+    if worker_done is not None:
+        threading.Thread(target=watch_worker, daemon=True).start()
+    icon.run()
