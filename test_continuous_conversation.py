@@ -17,6 +17,12 @@ class ContinuousConversationTests(unittest.TestCase):
         self.assertIsNone(router.respond("как дела"))
         self.assertEqual(2, assistant.respond.call_count)
 
+    def test_no_command_before_wake_even_when_it_sounds_like_an_action(self):
+        assistant = Mock()
+        router = WakeAssistant(assistant, clock=lambda: 100)
+        self.assertIsNone(router.respond("открой блокнот"))
+        assistant.respond.assert_not_called()
+
     def test_fresh_wake_reactivates(self):
         clock = [100]
         assistant = Mock()
