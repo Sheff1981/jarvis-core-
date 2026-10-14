@@ -1,6 +1,7 @@
 """Local-only qBittorrent Web API adapter. No automatic downloads or execution."""
 import json
-from urllib.parse import urlencode
+import re
+from urllib.parse import urlencode, urlsplit, parse_qs
 from urllib.request import Request, build_opener, ProxyHandler
 
 
@@ -100,11 +101,23 @@ class TorrentClient:
             raise RuntimeError("Torrent client rejected state change")
         return True
 
-    def add_magnet(self, cookie, magnet, save_path=None):
-        if not isinstance(magnet, str) or not magnet.startswith("magnet:?xt=urn:btih:"):
-            raise ValueError("Only BitTorrent infohash magnet links are accepted")
-        if len(magnet) > 4096 or any(ord(ch) < 32 for ch in magnet):
+    @staticmethod
+    def validate_magnet(magnet):
+        if not isinstance(magnet, str) or len(magnet) > 4096 or any(ord(ch) < 32 for ch in magnet):
             raise ValueError("Invalid magnet link")
+        parsed = urlsplit(magnet)
+        if parsed.scheme != "magnet" or parsed.netloc or parsed.fragment:
+            raise ValueError("Invalid magnet URI")
+        identifiers = parse_qs(parsed.query, keep_blank_values=True).get("xt", [])
+        if len(identifiers) != 1:
+            raise ValueError("Exactly one BitTorrent identifier required")
+        identifier = identifiers[0]
+        if not re.fullmatch(r"urn:btih:(?:[a-fA-F0-9]{40}|[a-zA-Z2-7]{32})", identifier):
+            raise ValueError("Invalid BitTorrent infohash")
+        return magnet
+
+    def add_magnet(self, cookie, magnet, save_path=None):
+        self.validate_magnet(magnet)
         payload = {"urls": magnet, "paused": "true"}
         if save_path is not None:
             payload["savepath"] = str(save_path)
