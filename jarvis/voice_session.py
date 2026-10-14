@@ -23,8 +23,8 @@ class VoiceSession:
         def capture():
             try:
                 def recognized(phrase):
-                    if self.listening_allowed():
-                        self.events.put(("speech", phrase))
+                    if self.listening_allowed() and isinstance(phrase, str) and phrase.strip():
+                        self.events.put(("speech", phrase.strip()))
                 self.input_device.listen(recognized, self.stop_event,
                                          should_listen=self.listening_allowed)
             except Exception as exc:
