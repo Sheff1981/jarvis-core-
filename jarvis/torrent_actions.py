@@ -32,8 +32,7 @@ class ApprovedTorrentActions:
         return hashlib.sha256(operation.encode("utf-8") + b":" + encoded).hexdigest()
 
     def propose_magnet(self, magnet, save_path=None):
-        if not isinstance(magnet, str) or not magnet.startswith("magnet:?xt=urn:btih:"):
-            raise ValueError("Invalid magnet link")
+        self.client.validate_magnet(magnet)
         target = self._fingerprint("torrent_add", [magnet, save_path])
         return self.gate.propose("torrent_add", target, "Add paused torrent to: " + str(save_path))
 
