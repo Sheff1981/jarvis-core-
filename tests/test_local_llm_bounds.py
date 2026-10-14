@@ -25,7 +25,7 @@ class LocalLLMBoundsTests(unittest.TestCase):
             def read(self, size): return b"x" * (1024 * 1024 + 1)
 
         llm = LocalLLM()
-        with patch("jarvis.local_llm.urlopen", return_value=LargeResponse()):
+        with patch("jarvis.local_llm.open_local", return_value=LargeResponse()):
             with self.assertRaisesRegex(RuntimeError, "слишком большой"):
                 llm.ask("Привет")
         self.assertEqual(llm.history, [])
