@@ -1,3 +1,6 @@
 -r requirements.txt
 vosk>=0.3.45,<1
 sounddevice>=0.4.6,<1
+pyttsx3>=2.98,<3
+pystray>=0.19.5,<1
+Pillow>=10,<13
