@@ -4,8 +4,9 @@ import threading
 
 
 class VoiceSession:
-    def __init__(self, assistant, input_device, controller=None):
+    def __init__(self, assistant, input_device, controller=None, require_wake=False):
         self.assistant = assistant
+        self.active = not require_wake
         self.input_device = input_device
         self.controller = controller
         self.events = queue.Queue()
@@ -44,6 +45,21 @@ class VoiceSession:
                     continue
                 if kind == "speech":
                     if not self.listening_allowed():
+                        continue
+                    words = value.split(maxsplit=1)
+                    is_wake = words[0].casefold().rstrip(",!") in ("джарвис", "jarvis")
+                    if not self.active and not is_wake:
+                        continue
+                    if is_wake:
+                        self.active = True
+                        value = words[1].strip() if len(words) > 1 else ""
+                    if value.casefold() in ("спи", "засыпай"):
+                        self.active = False
+                        self.assistant.action_dialogue.close()
+                        on_event("answer", "Перехожу в режим ожидания.")
+                        continue
+                    if not value:
+                        on_event("answer", "Слушаю.")
                         continue
                     self.busy_event.set()
                     try:
