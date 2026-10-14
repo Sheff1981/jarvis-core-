@@ -2,6 +2,7 @@
 import json
 from urllib.error import URLError, HTTPError
 from urllib.request import Request, urlopen
+from jarvis.local_transport import open_local
 
 
 SYSTEM_PROMPT = (
@@ -50,7 +51,7 @@ class LocalLLM:
             headers={"Content-Type": "application/json"}, method="POST",
         )
         try:
-            with urlopen(request, timeout=self.timeout) as response:
+            with open_local(request, timeout=self.timeout) as response:
                 raw = response.read(1024 * 1024 + 1)
                 if len(raw) > 1024 * 1024:
                     raise RuntimeError("Локальная модель вернула слишком большой ответ.")
