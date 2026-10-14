@@ -22,7 +22,7 @@ class WindowsActions:
     def propose(self, operation, target):
         if operation not in ("list_directory", "file_info", "open_explorer", "open_app", "list_windows", "focus_window"):
             raise ValueError("Operation is not supported")
-        path = (target.strip().casefold() if operation in ("open_app", "list_windows") else
+        path = (target.strip() if operation == "focus_window" else target.strip().casefold() if operation in ("open_app", "list_windows") else
                 str(Path(target).expanduser().resolve(strict=False)))
         if operation == "focus_window" and (not target.strip() or len(target) > 4096):
             raise ValueError("Exact window title required")
@@ -33,7 +33,7 @@ class WindowsActions:
         return self.gate.propose(operation, path, f"{operation}: {path}")
 
     def execute(self, token, operation, target):
-        path = (target.strip().casefold() if operation in ("open_app", "list_windows") else
+        path = (target.strip() if operation == "focus_window" else target.strip().casefold() if operation in ("open_app", "list_windows") else
                 str(Path(target).expanduser().resolve(strict=False)))
         if not self.gate.consume(token, operation, path):
             raise PermissionError("Explicit approval is required")
