@@ -29,6 +29,8 @@ class ActionDialogue:
                     )
                 except (OSError, ValueError, PermissionError) as exc:
                     return "Не удалось выполнить действие: " + str(exc)
+                if isinstance(result, dict) and "screen_text" in result:
+                    return "Текст на экране:\n" + (result["screen_text"] or "Текст не распознан.")
                 if isinstance(result, dict) and result.get("captured"):
                     return "Разовый снимок экрана получен в оперативную память и удалён. Анализ изображения пока не подключён."
                 if isinstance(result, dict) and "focused" in result:
@@ -48,6 +50,12 @@ class ActionDialogue:
             self.actions.gate.deny(request.token)
             self._log(request, "denied")
             return "Действие отменено. Для новой операции нужен новый запрос."
+
+        if re.fullmatch(r"(?:джарвис[,! ]+)?(?:прочитай экран|что написано на экране)", phrase, re.IGNORECASE):
+            request = self.actions.propose("read_screen_text", "desktop")
+            self.pending = request
+            self._log(request, "requested")
+            return "Разрешаешь разовый снимок и локальное распознавание текста всего экрана? Ответь «разрешаю» или «нет»."
 
         if re.fullmatch(r"(?:джарвис[,! ]+)?(?:сделай снимок экрана|снимок экрана)", phrase, re.IGNORECASE):
             request = self.actions.propose("capture_screen", "desktop")
