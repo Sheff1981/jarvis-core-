@@ -1,6 +1,7 @@
 """Offline voice JARVIS with optional visible tray controls."""
 import argparse
 import threading
+import time
 
 from jarvis.assistant import Assistant
 from jarvis.speech import Speaker
@@ -11,14 +12,22 @@ from jarvis.wake_word import extract_command
 
 
 class WakeAssistant:
-    def __init__(self, assistant):
+    def __init__(self, assistant, idle_seconds=300, clock=None):
         self.assistant = assistant
+        self.idle_seconds = idle_seconds
+        self.clock = clock if clock is not None else time.monotonic
+        self.active_until = 0
 
     def respond(self, phrase):
         activated, command = extract_command(phrase)
-        if not activated:
+        now = self.clock()
+        if activated:
+            self.active_until = now + self.idle_seconds
+            return self.assistant.respond(command)
+        if now >= self.active_until:
             return None
-        return self.assistant.respond(command)
+        self.active_until = now + self.idle_seconds
+        return self.assistant.respond(phrase)
 
 
 def main():
