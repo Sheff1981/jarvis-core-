@@ -43,7 +43,7 @@ class VoiceSession:
                 except queue.Empty:
                     continue
                 if kind == "speech":
-                    if self.controller and self.controller.muted:
+                    if not self.listening_allowed():
                         continue
                     self.busy_event.set()
                     try:
