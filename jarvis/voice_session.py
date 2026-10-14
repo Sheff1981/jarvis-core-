@@ -52,6 +52,9 @@ class VoiceSession:
                         on_event("answer", answer)
                         if answer == "Останавливаюсь.":
                             self.stop_event.set()
+                    except Exception as exc:
+                        on_event("error", "Ошибка обработки команды: " + str(exc))
+                        self.stop_event.set()
                     finally:
                         retained = []
                         while True:
