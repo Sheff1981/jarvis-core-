@@ -1,20 +1,22 @@
-"""Local voice-in/text-out JARVIS. Speech and errors pass through a thread-safe queue."""
+"""Voice input with optional local LLM and the same persistent project memory."""
 import argparse
 import queue
 import threading
 
-from jarvis.dialogue import Dialogue
+from jarvis.assistant import Assistant
 from jarvis.voice import VoiceInput
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Offline JARVIS microphone chat")
-    parser.add_argument("--model", required=True, help="Extracted Russian Vosk model directory")
+    parser = argparse.ArgumentParser(description="Offline JARVIS voice assistant")
+    parser.add_argument("--model", required=True, help="Extracted Vosk Russian model directory")
+    parser.add_argument("--llm-model", default="qwen2.5:3b", help="Local Ollama model name")
     parser.add_argument("--db", default="jarvis.db")
     args = parser.parse_args()
+
     events = queue.Queue()
     stop = threading.Event()
-    jarvis = Dialogue(args.db)
+    assistant = Assistant(db_path=args.db, model=args.llm_model)
 
     def capture():
         try:
@@ -40,7 +42,7 @@ def main():
                 print("JARVIS: Голосовой ввод завершён.", flush=True)
                 break
             print("Вы:", value, flush=True)
-            answer = jarvis.respond(value)
+            answer = assistant.respond(value)
             print("JARVIS:", answer, flush=True)
             if answer == "Останавливаюсь.":
                 stop.set()
@@ -49,7 +51,7 @@ def main():
     finally:
         stop.set()
         microphone.join(timeout=2)
-        jarvis.close()
+        assistant.close()
         print("JARVIS: Микрофон выключен.", flush=True)
 
 
