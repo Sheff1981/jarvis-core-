@@ -37,6 +37,23 @@ class ConversationPersistenceTests(unittest.TestCase):
             self.assertEqual(reopened.recent(), [])
             reopened.close()
 
+    def test_chat_history_survives_mode_switch_and_restart(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = str(Path(folder) / "memory.db")
+            first = Assistant(path, llm=MemoryLLM())
+            first.respond("давай поговорим")
+            self.assertEqual("ответ: как прошёл день", first.respond("как прошёл день"))
+            first.respond("давай поработаем")
+            first.close()
+
+            llm = MemoryLLM()
+            second = Assistant(path, llm=llm)
+            self.assertEqual(llm.history, [
+                {"role": "user", "content": "как прошёл день"},
+                {"role": "assistant", "content": "ответ: как прошёл день"},
+            ])
+            second.close()
+
     def test_assistant_restores_llm_history(self):
         with tempfile.TemporaryDirectory() as folder:
             path = str(Path(folder) / "memory.db")
