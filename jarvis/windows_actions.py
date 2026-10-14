@@ -3,6 +3,7 @@
 No shell commands, file writes, deletes or process launches are exposed.
 """
 import os
+import subprocess
 from pathlib import Path
 import threading
 import time
@@ -17,13 +18,17 @@ class WindowsActions:
         self.audit = []
 
     def propose(self, operation, target):
-        if operation not in ("list_directory", "file_info", "open_explorer"):
+        if operation not in ("list_directory", "file_info", "open_explorer", "open_app"):
             raise ValueError("Operation is not supported")
-        path = str(Path(target).expanduser().resolve(strict=False))
+        path = (target.strip().casefold() if operation == "open_app" else
+                str(Path(target).expanduser().resolve(strict=False)))
+        if operation == "open_app" and path not in ("notepad", "calculator", "explorer"):
+            raise ValueError("Application is not in the approved catalog")
         return self.gate.propose(operation, path, f"{operation}: {path}")
 
     def execute(self, token, operation, target):
-        path = str(Path(target).expanduser().resolve(strict=False))
+        path = (target.strip().casefold() if operation == "open_app" else
+                str(Path(target).expanduser().resolve(strict=False)))
         if not self.gate.consume(token, operation, path):
             raise PermissionError("Explicit approval is required")
         try:
@@ -37,6 +42,15 @@ class WindowsActions:
                 info = entry.stat()
                 result = {"name": entry.name, "size": info.st_size,
                           "is_file": entry.is_file(), "is_dir": entry.is_dir()}
+            elif operation == "open_app":
+                if os.name != "nt":
+                    raise OSError("Запуск приложений доступен только в Windows")
+                catalog = {"notepad": "notepad.exe", "calculator": "calc.exe",
+                           "explorer": "explorer.exe"}
+                if path not in catalog:
+                    raise ValueError("Application is not in the approved catalog")
+                subprocess.Popen([catalog[path]], shell=False)
+                result = {"launched": path}
             elif operation == "open_explorer":
                 if os.name != "nt":
                     raise OSError("Открытие Проводника доступно только в Windows")
