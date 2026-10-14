@@ -26,6 +26,20 @@ class DownloadSafetyTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "no addresses"):
                 validate_url("https://example.com/file")
 
+    def test_existing_file_is_not_overwritten(self):
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "archive.zip"
+            target.write_bytes(b"original")
+            manager = DownloadManager(directory)
+            url = "https://example.com/archive.zip"
+            with patch("jarvis.safe_download.validate_url", return_value=url):
+                approval = manager.propose(url)
+                manager.gate.approve(approval.token)
+                with self.assertRaises(FileExistsError):
+                    manager.download(approval.token, url, "archive.zip")
+            self.assertEqual(b"original", target.read_bytes())
+
     def test_requires_approval(self):
         with tempfile.TemporaryDirectory() as directory:
             manager = DownloadManager(directory)
