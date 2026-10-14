@@ -1,12 +1,22 @@
 """Thread-safe voice coordinator with microphone mute and feedback gating."""
 import queue
 import threading
+import time
+
+from jarvis.wake_word import extract_command
 
 
 class VoiceSession:
-    def __init__(self, assistant, input_device, controller=None, require_wake=False):
+    def __init__(self, assistant, input_device, controller=None, require_wake=False,
+                 idle_seconds=300, clock=None):
         self.assistant = assistant
+        if not isinstance(idle_seconds, (int, float)) or idle_seconds <= 0:
+            raise ValueError("idle_seconds must be positive")
         self.active = not require_wake
+        self.require_wake = require_wake
+        self.idle_seconds = idle_seconds
+        self.clock = clock if clock is not None else time.monotonic
+        self.active_until = 0
         self.input_device = input_device
         self.controller = controller
         self.events = queue.Queue()
@@ -50,13 +60,17 @@ class VoiceSession:
                 if kind == "speech":
                     if not self.listening_allowed():
                         continue
-                    words = value.split(maxsplit=1)
-                    is_wake = words[0].casefold().rstrip(",!") in ("джарвис", "jarvis")
-                    if not self.active and not is_wake:
+                    activated, command = extract_command(value)
+                    now = self.clock()
+                    if self.require_wake and self.active and now >= self.active_until:
+                        self.active = False
+                    if not self.active and not activated:
                         continue
-                    if is_wake:
+                    if activated:
                         self.active = True
-                        value = words[1].strip() if len(words) > 1 else ""
+                        value = command
+                    if self.require_wake:
+                        self.active_until = now + self.idle_seconds
                     if value.casefold() in ("спи", "засыпай"):
                         self.active = False
                         self.assistant.action_dialogue.close()
