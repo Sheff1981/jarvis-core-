@@ -1,7 +1,9 @@
 """Route local project commands, explicit facts and archive searches before LLM."""
 import re
 
+from jarvis.action_audit import ActionAudit
 from jarvis.action_dialogue import ActionDialogue
+from jarvis.windows_actions import WindowsActions
 from jarvis.conversation_store import ConversationStore
 from jarvis.dialogue import Dialogue
 from jarvis.facts import FactStore
@@ -24,7 +26,8 @@ MEMORY_SEARCH = re.compile(
 class Assistant:
     def __init__(self, db_path="jarvis.db", model="qwen2.5:3b", llm=None):
         self.dialogue = Dialogue(db_path)
-        self.action_dialogue = ActionDialogue()
+        self.action_audit = ActionAudit(db_path)
+        self.action_dialogue = ActionDialogue(WindowsActions(audit_store=self.action_audit))
         self.llm = llm if llm is not None else LocalLLM(model=model)
         self.conversations = ConversationStore(db_path)
         self.facts = FactStore(db_path)
@@ -84,6 +87,7 @@ class Assistant:
 
     def close(self):
         self.action_dialogue.close()
+        self.action_audit.close()
         self.facts.close()
         self.conversations.close()
         self.dialogue.close()
