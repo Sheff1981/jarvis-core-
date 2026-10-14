@@ -24,10 +24,12 @@ class Dialogue:
             self.session.append('user', text)
         if normalized in ('режим беседы', 'разговорный режим', 'давай просто поговорим'):
             self.pending_project_id = None
+            self.awaiting_project_name = False
             self.session.switch(Mode.CONVERSATION)
             return 'Перешёл в разговорный режим. Действия с компьютером отключены.'
         if normalized in ('рабочий режим', 'режим работы', 'работай'):
             self.pending_project_id = None
+            self.awaiting_project_name = False
             self.session.switch(Mode.WORK)
             return 'Рабочий режим включён. Каждое действие потребует отдельного разрешения.'
         if not text:
@@ -52,6 +54,7 @@ class Dialogue:
             "что у нас не закончено"
         )):
             self.pending_project_id = None
+            self.awaiting_project_name = False
             projects = self.projects.list()
             if not projects:
                 return "Незавершённых проектов в моей локальной памяти пока нет."
