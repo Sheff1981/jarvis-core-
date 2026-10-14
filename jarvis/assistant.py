@@ -37,7 +37,14 @@ class Assistant:
             self.llm.history = self.conversations.recent(self.llm.max_turns)
 
     def respond(self, phrase):
+        if not isinstance(phrase, str):
+            raise TypeError("phrase must be text")
         phrase = phrase.strip()
+        if not phrase:
+            return "Я слушаю."
+        if phrase.casefold() in ("стоп", "джарвис стоп", "джарвис, стоп", "отмена", "джарвис отмена"):
+            self.action_dialogue.close()
+            return "Ожидающее действие отменено."
         mode_reply = self.modes.switch(phrase)
         if mode_reply is not None:
             if hasattr(self.llm, 'mode'):
