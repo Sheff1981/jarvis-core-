@@ -59,6 +59,19 @@ class LocalLLMTests(unittest.TestCase):
             llm.clear_history()
             self.assertEqual(llm.history, [])
 
+    def test_malformed_response_does_not_corrupt_history(self):
+        class BadResponse(FakeResponse):
+            def read(self, *args):
+                return b"{not-json"
+        llm = LocalLLM()
+        with patch("jarvis.local_llm.urlopen", return_value=BadResponse()):
+            with self.assertRaisesRegex(RuntimeError, "повреждённый"):
+                llm.ask("Вопрос")
+        self.assertEqual([], llm.history)
+        with patch("jarvis.local_llm.urlopen", return_value=FakeResponse("Работает")):
+            self.assertEqual("Работает", llm.ask("Повтор"))
+        self.assertEqual(2, len(llm.history))
+
     def test_failed_request_not_recorded(self):
         with patch("jarvis.local_llm.urlopen", side_effect=URLError("offline")):
             llm = LocalLLM()
