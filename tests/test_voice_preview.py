@@ -29,6 +29,20 @@ class VoicePreviewTests(unittest.TestCase):
         mic.assert_not_called()
         session.assert_not_called()
 
+    def test_slow_serious_voice_preview_forwards_pacing(self):
+        argv = [
+            "voice_chat.py", "--voice-preview", "--tts", "piper",
+            "--piper-bin", "D:/piper/piper.exe",
+            "--piper-voice", "D:/voice/ru_RU-ruslan-medium.onnx",
+            "--piper-length-scale", "1.16",
+            "--piper-sentence-silence", "0.35",
+        ]
+        with patch.object(sys, "argv", argv), \
+             patch("voice_chat.Speaker") as speaker:
+            voice_chat.main()
+        self.assertEqual(speaker.call_args.kwargs["piper_length_scale"], 1.16)
+        self.assertEqual(speaker.call_args.kwargs["piper_sentence_silence"], 0.35)
+
     def test_listening_mode_still_requires_vosk_path(self):
         with patch.object(sys, "argv", ["voice_chat.py", "--speak"]):
             with self.assertRaises(SystemExit) as error:
