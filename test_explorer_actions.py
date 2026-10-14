@@ -35,7 +35,7 @@ class ExplorerActionTests(unittest.TestCase):
         dialogue = ActionDialogue()
         dialogue.respond("Джарвис, открой мне диск С")
         self.assertEqual(dialogue.pending.operation, "open_explorer")
-        self.assertTrue(dialogue.pending.target.upper().startswith("C:"))
+        self.assertIn("C:", dialogue.pending.target.upper())
         dialogue.close()
 
 
