@@ -52,6 +52,17 @@ class RetryTests(unittest.TestCase):
             self._run(FailingStream, threading.Event())
         self.assertEqual(FailingStream.attempts, 3)
 
+    def test_reconnects_after_temporary_failure(self):
+        stop = threading.Event()
+        RecoveringStream.attempts = 0
+        timer = threading.Timer(0.8, stop.set)
+        timer.start()
+        try:
+            self._run(RecoveringStream, stop)
+        finally:
+            timer.join()
+        self.assertEqual(RecoveringStream.attempts, 2)
+
     def test_retry_can_be_cancelled(self):
         stop = threading.Event()
         FailingStream.attempts = 0
