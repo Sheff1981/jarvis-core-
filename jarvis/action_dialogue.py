@@ -29,6 +29,8 @@ class ActionDialogue:
                     )
                 except (OSError, ValueError, PermissionError) as exc:
                     return "Не удалось выполнить действие: " + str(exc)
+                if isinstance(result, dict) and result.get("captured"):
+                    return "Разовый снимок экрана получен в оперативную память и удалён. Анализ изображения пока не подключён."
                 if isinstance(result, dict) and "focused" in result:
                     return "Переключаюсь на окно: " + result["focused"]
                 if isinstance(result, dict) and "launched" in result:
@@ -46,6 +48,12 @@ class ActionDialogue:
             self.actions.gate.deny(request.token)
             self._log(request, "denied")
             return "Действие отменено. Для новой операции нужен новый запрос."
+
+        if re.fullmatch(r"(?:джарвис[,! ]+)?(?:сделай снимок экрана|снимок экрана)", phrase, re.IGNORECASE):
+            request = self.actions.propose("capture_screen", "desktop")
+            self.pending = request
+            self._log(request, "requested")
+            return "Разрешаешь разовый снимок всего экрана? Он может содержать личные данные. Ответь «разрешаю» или «нет»."
 
         focus = re.fullmatch(r"(?:джарвис[,! ]+)?(?:переключись на окно|активируй окно)\s+(.+)", phrase, re.IGNORECASE)
         if focus:
