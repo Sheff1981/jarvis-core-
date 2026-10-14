@@ -18,6 +18,10 @@ class LocalLLM:
             raise ValueError("Only the local Ollama endpoint is allowed")
         if not isinstance(max_turns, int) or max_turns < 1:
             raise ValueError("max_turns must be a positive integer")
+        if not isinstance(timeout, (int, float)) or not 0 < timeout <= 120:
+            raise ValueError("timeout must be between 0 and 120 seconds")
+        if not isinstance(model, str) or not model.strip():
+            raise ValueError("model name is required")
         self.endpoint = endpoint
         self.model = model
         self.timeout = timeout
@@ -26,12 +30,14 @@ class LocalLLM:
         self.mode = 'work'
 
     def ask(self, prompt):
-        prompt = prompt.strip()
+        if not isinstance(prompt, str):
+            raise TypeError("prompt must be text")
+        prompt = prompt.strip()[:8000]
         if not prompt:
             return ""
         messages = (
             [{"role": "system", "content": SYSTEM_PROMPT + (" Поддерживай свободную беседу, не предлагай запуск программ." if self.mode == "chat" else " Обсуждай рабочие задачи, не заявляй о выполнении без проверки.")}]
-            + self.history
+            + self.history[-2 * self.max_turns:]
             + [{"role": "user", "content": prompt}]
         )
         payload = json.dumps({
@@ -45,7 +51,10 @@ class LocalLLM:
         )
         try:
             with urlopen(request, timeout=self.timeout) as response:
-                data = json.load(response)
+                raw = response.read(1024 * 1024 + 1)
+                if len(raw) > 1024 * 1024:
+                    raise RuntimeError("Локальная модель вернула слишком большой ответ.")
+                data = json.loads(raw)
         except (URLError, HTTPError, TimeoutError, OSError) as exc:
             raise RuntimeError("Локальная модель недоступна. Проверь Ollama и загрузку модели.") from exc
         except (ValueError, UnicodeError) as exc:
