@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+.venv/
+jarvis.db
+*.db-journal
+.env
+*.log
