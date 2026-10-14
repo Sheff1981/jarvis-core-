@@ -54,7 +54,7 @@ class VoiceInput:
                     while not stop_event.wait(0.1):
                         if callback_error:
                             raise RuntimeError("Ошибка распознавания аудио") from callback_error[0]
-                        if not stream.active:
+                        if not getattr(stream, "active", True):
                             raise OSError("Аудиопоток неожиданно остановился")
                         if should_listen is not None and not should_listen():
                             stream.stop()
