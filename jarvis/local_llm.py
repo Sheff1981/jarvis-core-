@@ -23,6 +23,7 @@ class LocalLLM:
         self.timeout = timeout
         self.max_turns = max_turns
         self.history = []
+        self.mode = 'work'
 
     def ask(self, prompt):
         prompt = prompt.strip()
