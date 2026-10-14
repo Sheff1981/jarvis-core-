@@ -4,6 +4,7 @@ import threading
 import time
 
 from jarvis.assistant import Assistant
+from jarvis.local_llm import LocalLLM
 from jarvis.speech import Speaker
 from jarvis.tray import TrayController, run_tray
 from jarvis.voice import VoiceInput
@@ -38,6 +39,8 @@ def main():
     parser.add_argument("--always-listen", action="store_true",
                         help="Opt in to processing speech without wake-word activation")
     parser.add_argument("--speak", action="store_true")
+    parser.add_argument("--cpu-only", action="store_true",
+                        help="Run Ollama on CPU with a low-memory profile (no CUDA)")
     parser.add_argument("--tray", action="store_true", help="Show a system tray with mute and exit")
     args = parser.parse_args()
 
@@ -50,7 +53,13 @@ def main():
         assistant = None
         speaker = None
         try:
-            assistant = Assistant(db_path=args.db, model=args.llm_model)
+            if args.cpu_only:
+                assistant = Assistant(
+                    db_path=args.db, model=args.llm_model,
+                    llm=LocalLLM(model=args.llm_model, timeout=120, cpu_only=True),
+                )
+            else:
+                assistant = Assistant(db_path=args.db, model=args.llm_model)
             speaker = Speaker(enabled=args.speak)
             router = assistant if args.always_listen else WakeAssistant(assistant)
             session = VoiceSession(router, VoiceInput(args.model), controller=controller)
