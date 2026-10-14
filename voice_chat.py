@@ -61,8 +61,12 @@ def main():
             else:
                 assistant = Assistant(db_path=args.db, model=args.llm_model)
             speaker = Speaker(enabled=args.speak)
-            router = assistant if args.always_listen else WakeAssistant(assistant)
-            session = VoiceSession(router, VoiceInput(args.model), controller=controller)
+            # One wake gate in VoiceSession. Wrapping WakeAssistant here used to
+            # consume the wake phrase twice, dropping the first user command.
+            session = VoiceSession(
+                assistant, VoiceInput(args.model), controller=controller,
+                require_wake=not args.always_listen,
+            )
 
             def show_event(kind, value):
                 if kind == "heard":
