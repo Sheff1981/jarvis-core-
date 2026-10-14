@@ -42,6 +42,9 @@ class Assistant:
         phrase = phrase.strip()
         if not phrase:
             return "Я слушаю."
+        if phrase.casefold() in ("очисти историю разговора", "забудь наш разговор"):
+            self.clear_conversation()
+            return "История разговора удалена из локальной памяти."
         if phrase.casefold() in ("стоп", "джарвис стоп", "джарвис, стоп", "отмена", "джарвис отмена"):
             self.action_dialogue.close()
             return "Ожидающее действие отменено."
@@ -107,6 +110,9 @@ class Assistant:
     def clear_conversation(self):
         self.conversations.clear()
         self.dialogue.conversation.clear()
+        self.dialogue.session.clear()
+        self.dialogue.pending_project_id = None
+        self.action_dialogue.close()
         if hasattr(self.llm, "clear_history"):
             self.llm.clear_history()
 
