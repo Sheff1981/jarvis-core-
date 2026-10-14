@@ -1,7 +1,7 @@
 """Optional local Ollama conversation backend; bounded in-memory dialogue history."""
 import json
 from urllib.error import URLError, HTTPError
-from urllib.request import Request, urlopen
+from urllib.request import Request
 from jarvis.local_transport import open_local
 
 
@@ -14,7 +14,7 @@ SYSTEM_PROMPT = (
 
 class LocalLLM:
     def __init__(self, model="qwen2.5:3b", endpoint="http://127.0.0.1:11434",
-                 timeout=45, max_turns=8):
+                 timeout=45, max_turns=8, cpu_only=False):
         if endpoint not in ("http://127.0.0.1:11434", "http://localhost:11434"):
             raise ValueError("Only the local Ollama endpoint is allowed")
         if not isinstance(max_turns, int) or max_turns < 1:
@@ -27,6 +27,9 @@ class LocalLLM:
         self.model = model
         self.timeout = timeout
         self.max_turns = max_turns
+        if not isinstance(cpu_only, bool):
+            raise TypeError("cpu_only must be a boolean")
+        self.cpu_only = cpu_only
         self.history = []
         self.mode = 'work'
 
@@ -41,11 +44,18 @@ class LocalLLM:
             + self.history[-2 * self.max_turns:]
             + [{"role": "user", "content": prompt}]
         )
-        payload = json.dumps({
+        payload_data = {
             "model": self.model,
             "stream": False,
             "messages": messages,
-        }).encode("utf-8")
+        }
+        if self.cpu_only:
+            payload_data["options"] = {
+                "num_gpu": 0, "num_ctx": 1024,
+                "num_predict": 96, "num_thread": 4,
+            }
+            payload_data["keep_alive"] = 0
+        payload = json.dumps(payload_data).encode("utf-8")
         request = Request(
             self.endpoint + "/api/chat", data=payload,
             headers={"Content-Type": "application/json"}, method="POST",
