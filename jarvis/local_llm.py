@@ -1,12 +1,7 @@
 """Optional local Ollama conversation backend; bounded in-memory dialogue history."""
 import json
 from urllib.error import URLError, HTTPError
-from urllib.request import Request, urlopen, build_opener, HTTPRedirectHandler
-
-
-class _RejectRedirects(HTTPRedirectHandler):
-    def redirect_request(self, request, fp, code, msg, headers, newurl):
-        raise RuntimeError("Ollama redirect blocked: local prompts must not leave this computer")
+from urllib.request import Request, urlopen
 
 
 SYSTEM_PROMPT = (
@@ -28,7 +23,6 @@ class LocalLLM:
         if not isinstance(model, str) or not model.strip():
             raise ValueError("model name is required")
         self.endpoint = endpoint
-        self._opener = build_opener(_RejectRedirects)
         self.model = model
         self.timeout = timeout
         self.max_turns = max_turns
@@ -56,7 +50,7 @@ class LocalLLM:
             headers={"Content-Type": "application/json"}, method="POST",
         )
         try:
-            with self._opener.open(request, timeout=self.timeout) as response:
+            with urlopen(request, timeout=self.timeout) as response:
                 raw = response.read(1024 * 1024 + 1)
                 if len(raw) > 1024 * 1024:
                     raise RuntimeError("Локальная модель вернула слишком большой ответ.")
