@@ -106,6 +106,7 @@ class Assistant:
 
     def clear_conversation(self):
         self.conversations.clear()
+        self.dialogue.conversation.clear()
         if hasattr(self.llm, "clear_history"):
             self.llm.clear_history()
 
