@@ -8,6 +8,8 @@ class ModeTests(unittest.TestCase):
     def test_chat_never_calls_computer_tools(self):
         with tempfile.TemporaryDirectory() as folder:
             llm = Mock()
+            llm.max_turns = 8
+            llm.history = []
             llm.ask.return_value = "Я слушаю."
             assistant = Assistant(db_path=folder + "/test.db", llm=llm)
             assistant.action_dialogue.respond = Mock(side_effect=AssertionError("tool invoked"))
@@ -19,7 +21,7 @@ class ModeTests(unittest.TestCase):
 
     def test_chat_cancels_pending_approval(self):
         with tempfile.TemporaryDirectory() as folder:
-            assistant = Assistant(db_path=folder + "/test.db", llm=Mock())
+            assistant = Assistant(db_path=folder + "/test.db", llm=Mock(max_turns=8, history=[]))
             assistant.respond("открой блокнот")
             self.assertIsNotNone(assistant.action_dialogue.pending)
             assistant.respond("режим разговора")
