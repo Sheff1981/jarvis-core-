@@ -1,16 +1,25 @@
-# Windows tray UI (experimental)
+# JARVIS system tray — experimental integration
 
-The optional tray module adds a visible icon and two controls:
-- Toggle microphone mute state.
-- Request application exit.
+The optional `--tray` mode now connects the tray controller to the
+voice session. It offers:
+- Microphone mute: skips incoming audio frames before Vosk transcription.
+- Resume: resets the recognizer after blocked audio.
+- Exit: requests voice-session shutdown.
 
-The pure-Python controller can be unit-tested without a display or audio
-hardware. The icon requires optional `pystray` and `Pillow` packages.
+Voice responses also gate transcription to reduce self-triggering.
+The microphone stream itself remains open while muted; this is **software
+muting**, not hardware disconnection. For stronger privacy, future versions
+should close and reopen the capture stream on mute/unmute.
 
-**Not yet integrated into the running voice process.** In particular,
-changing the controller's mute flag alone does not stop the microphone.
-A subsequent integration must connect the flag to the audio capture callback
-and the exit request to the voice session stop event. Do not describe this
-as a working microphone privacy switch until that integration is tested.
+The tray runs on the UI thread and the voice session on a worker thread.
+Actual Windows GUI and audio tests have **not** been performed.
 
-No tray window, microphone, or background process starts on import.
+Known issues to resolve before release:
+- Tray must close itself if the voice worker ends or crashes.
+- Avoid closing SQLite while an unresponsive worker is still running.
+- Verify pystray/Pillow/pyttsx3 behavior and device recovery on Windows.
+- Verify wake-phrase false activations and microphone permissions.
+- Add a persistent visual microphone state indicator.
+- Implement an explicit installer and an autostart entry for the tray variant.
+
+No automatic startup or background recording is enabled by this commit.
