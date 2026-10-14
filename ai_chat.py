@@ -1,7 +1,6 @@
-"""Text JARVIS with deterministic project memory and optional local Ollama."""
+"""Text JARVIS: same assistant core as microphone mode."""
 import argparse
-from jarvis.dialogue import Dialogue
-from jarvis.local_llm import LocalLLM
+from jarvis.assistant import Assistant
 
 
 def main():
@@ -9,9 +8,8 @@ def main():
     parser.add_argument("--model", default="qwen2.5:3b")
     parser.add_argument("--db", default="jarvis.db")
     args = parser.parse_args()
-    dialogue = Dialogue(args.db)
-    llm = LocalLLM(model=args.model)
-    print("JARVIS: Готов. Проекты веду локально; остальные вопросы — локальной модели.")
+    assistant = Assistant(db_path=args.db, model=args.model)
+    print("JARVIS: Готов. Проекты сохраняю локально, вопросы передаю локальной модели.")
     try:
         while True:
             try:
@@ -20,20 +18,14 @@ def main():
                 break
             if not phrase:
                 continue
-            # Deterministic routing handles supported project commands.
-            answer = dialogue.respond(phrase)
-            if answer.startswith("Пока не умею"):
-                try:
-                    answer = llm.ask(phrase)
-                except RuntimeError as exc:
-                    answer = str(exc)
+            answer = assistant.respond(phrase)
             print("JARVIS:", answer)
             if answer == "Останавливаюсь.":
                 break
     except KeyboardInterrupt:
         print("\nJARVIS: Останавливаюсь.")
     finally:
-        dialogue.close()
+        assistant.close()
 
 
 if __name__ == "__main__":
