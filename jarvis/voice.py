@@ -27,17 +27,23 @@ class VoiceInput:
 
             recognizer = KaldiRecognizer(model, self.sample_rate)
 
+            callback_error = []
+
             def callback(indata, frames, time_info, status):
                 if stop_event.is_set() or (
                     should_listen is not None and not should_listen()
                 ):
                     raise sd.CallbackStop()
-                if recognizer.AcceptWaveform(bytes(indata)):
-                    phrase = json.loads(recognizer.Result()).get("text", "").strip()
-                    if phrase and not stop_event.is_set() and (
-                        should_listen is None or should_listen()
-                    ):
-                        on_text(phrase)
+                try:
+                    if recognizer.AcceptWaveform(bytes(indata)):
+                        phrase = json.loads(recognizer.Result()).get("text", "").strip()
+                        if phrase and not stop_event.is_set() and (
+                            should_listen is None or should_listen()
+                        ):
+                            on_text(phrase)
+                except Exception as exc:
+                    callback_error.append(exc)
+                    raise sd.CallbackStop() from exc
 
             try:
                 with sd.RawInputStream(
@@ -46,6 +52,10 @@ class VoiceInput:
                 ) as stream:
                     failures = 0
                     while not stop_event.wait(0.1):
+                        if callback_error:
+                            raise RuntimeError("Ошибка распознавания аудио") from callback_error[0]
+                        if not stream.active:
+                            raise OSError("Аудиопоток неожиданно остановился")
                         if should_listen is not None and not should_listen():
                             stream.stop()
                             break
