@@ -1,7 +1,4 @@
-"""Offline microphone recognition using an explicitly installed Vosk model.
-
-No audio is stored or transmitted. Importing this module does not activate the mic.
-"""
+"""Offline microphone transcription; muted audio is never sent to recognizer."""
 import json
 from pathlib import Path
 
@@ -16,16 +13,26 @@ class VoiceInput:
         self.model_path = str(path)
         self.sample_rate = sample_rate
 
-    def listen(self, on_text, stop_event):
-        """Stream finalized recognized phrases until stop_event is set."""
+    def listen(self, on_text, stop_event, should_listen=None):
+        """Read local audio until stopped; gate recognition when muted or speaking."""
         import sounddevice as sd
         from vosk import Model, KaldiRecognizer
 
-        recognizer = KaldiRecognizer(Model(self.model_path), self.sample_rate)
+        model = Model(self.model_path)
+        recognizer = KaldiRecognizer(model, self.sample_rate)
+        was_blocked = False
 
         def callback(indata, frames, time_info, status):
+            nonlocal recognizer, was_blocked
             if stop_event.is_set():
                 raise sd.CallbackStop()
+            if should_listen is not None and not should_listen():
+                was_blocked = True
+                return
+            if was_blocked:
+                # Flush recognition state so old partial speech cannot leak.
+                recognizer = KaldiRecognizer(model, self.sample_rate)
+                was_blocked = False
             if recognizer.AcceptWaveform(bytes(indata)):
                 phrase = json.loads(recognizer.Result()).get("text", "").strip()
                 if phrase:
