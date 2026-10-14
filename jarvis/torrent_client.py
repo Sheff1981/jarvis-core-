@@ -38,6 +38,27 @@ class TorrentClient:
             raise ValueError("Unexpected torrent response")
         return result
 
+    def progress(self, cookie):
+        """Return bounded status records without guessing missing ETA values."""
+        entries = self.list_torrents(cookie)
+        statuses = []
+        for entry in entries[:200]:
+            if not isinstance(entry, dict):
+                raise ValueError("Invalid torrent status")
+            fraction = entry.get("progress")
+            if not isinstance(fraction, (float, int)) or isinstance(fraction, bool) or not 0 <= fraction <= 1:
+                raise ValueError("Invalid progress fraction")
+            statuses.append({
+                "hash": self._hash(entry.get("hash")),
+                "name": str(entry.get("name", ""))[:300],
+                "progress_percent": round(fraction * 100, 1),
+                "download_speed_bps": max(0, int(entry.get("dlspeed", 0))),
+                "state": str(entry.get("state", "unknown"))[:80],
+                "eta_seconds": entry.get("eta") if isinstance(entry.get("eta"), int)
+                    and not isinstance(entry.get("eta"), bool) and 0 <= entry["eta"] < 8640000 else None,
+            })
+        return statuses
+
     @staticmethod
     def _hash(value):
         if not isinstance(value, str) or len(value) not in (40, 64):
