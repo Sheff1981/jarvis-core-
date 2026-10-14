@@ -1,6 +1,6 @@
 """Approved, narrowly scoped local filesystem operations.
 
-No shell commands, file writes, deletes or process launches are exposed.
+No shell commands, file writes, deletes or arbitrary executables are exposed.
 """
 import os
 import subprocess
@@ -24,6 +24,8 @@ class WindowsActions:
             raise ValueError("Operation is not supported")
         path = (target.strip().casefold() if operation in ("open_app", "list_windows") else
                 str(Path(target).expanduser().resolve(strict=False)))
+        if operation == "list_windows" and path != "desktop":
+            raise ValueError("Invalid desktop target")
         if operation == "open_app" and path not in ("notepad", "calculator", "explorer"):
             raise ValueError("Application is not in the approved catalog")
         return self.gate.propose(operation, path, f"{operation}: {path}")
