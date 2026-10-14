@@ -39,10 +39,20 @@ def main():
     parser.add_argument("--always-listen", action="store_true",
                         help="Opt in to processing speech without wake-word activation")
     parser.add_argument("--speak", action="store_true")
+    parser.add_argument("--tts", choices=("sapi", "piper"), default="sapi",
+                        help="Offline speech engine; SAPI stays default")
+    parser.add_argument("--piper-bin", default=None,
+                        help="Path to the local Piper executable")
+    parser.add_argument("--piper-voice", default=None,
+                        help="Path to a local Piper .onnx voice model")
     parser.add_argument("--cpu-only", action="store_true",
                         help="Run Ollama on CPU with a low-memory profile (no CUDA)")
     parser.add_argument("--tray", action="store_true", help="Show a system tray with mute and exit")
     args = parser.parse_args()
+    if args.speak and args.tts == "piper" and (
+        not args.piper_bin or not args.piper_voice
+    ):
+        parser.error("--tts piper requires --piper-bin and --piper-voice")
 
     controller = TrayController()
     worker_done = threading.Event()
@@ -60,7 +70,8 @@ def main():
                 )
             else:
                 assistant = Assistant(db_path=args.db, model=args.llm_model)
-            speaker = Speaker(enabled=args.speak)
+            speaker = Speaker(enabled=args.speak, backend=args.tts,
+                              piper_exe=args.piper_bin, voice_model=args.piper_voice)
             # One wake gate in VoiceSession. Wrapping WakeAssistant here used to
             # consume the wake phrase twice, dropping the first user command.
             session = VoiceSession(
