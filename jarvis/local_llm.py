@@ -30,7 +30,7 @@ class LocalLLM:
         if not prompt:
             return ""
         messages = (
-            [{"role": "system", "content": SYSTEM_PROMPT}]
+            [{"role": "system", "content": SYSTEM_PROMPT + (" Поддерживай свободную беседу, не предлагай запуск программ." if self.mode == "chat" else " Обсуждай рабочие задачи, не заявляй о выполнении без проверки.")}]
             + self.history
             + [{"role": "user", "content": prompt}]
         )
