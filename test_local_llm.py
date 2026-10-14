@@ -25,14 +25,14 @@ class LocalLLMTests(unittest.TestCase):
             LocalLLM(endpoint="https://remote.example")
 
     def test_uses_local_api_and_returns_answer(self):
-        with patch("jarvis.local_llm.urlopen", return_value=FakeResponse()) as mocked:
+        with patch("jarvis.local_llm.open_local", return_value=FakeResponse()) as mocked:
             self.assertEqual(LocalLLM().ask("Привет"), "Привет!")
             request = mocked.call_args.args[0]
             self.assertEqual(request.full_url, "http://127.0.0.1:11434/api/chat")
             self.assertEqual(json.loads(request.data)["messages"][-1]["content"], "Привет")
 
     def test_connection_error_is_readable(self):
-        with patch("jarvis.local_llm.urlopen", side_effect=URLError("offline")):
+        with patch("jarvis.local_llm.open_local", side_effect=URLError("offline")):
             with self.assertRaisesRegex(RuntimeError, "недоступна"):
                 LocalLLM().ask("Привет")
 
@@ -41,7 +41,7 @@ class LocalLLMTests(unittest.TestCase):
         def fake_open(request, timeout):
             requests.append(json.loads(request.data)["messages"])
             return FakeResponse("Ответ")
-        with patch("jarvis.local_llm.urlopen", side_effect=fake_open):
+        with patch("jarvis.local_llm.open_local", side_effect=fake_open):
             llm = LocalLLM()
             llm.ask("Первый вопрос")
             llm.ask("А что дальше?")
@@ -50,7 +50,7 @@ class LocalLLMTests(unittest.TestCase):
         self.assertEqual(requests[1][1]["content"], "Первый вопрос")
 
     def test_history_is_bounded(self):
-        with patch("jarvis.local_llm.urlopen", return_value=FakeResponse()):
+        with patch("jarvis.local_llm.open_local", return_value=FakeResponse()):
             llm = LocalLLM(max_turns=2)
             for number in range(5):
                 llm.ask(str(number))
@@ -64,16 +64,16 @@ class LocalLLMTests(unittest.TestCase):
             def read(self, *args):
                 return b"{not-json"
         llm = LocalLLM()
-        with patch("jarvis.local_llm.urlopen", return_value=BadResponse()):
+        with patch("jarvis.local_llm.open_local", return_value=BadResponse()):
             with self.assertRaisesRegex(RuntimeError, "повреждённый"):
                 llm.ask("Вопрос")
         self.assertEqual([], llm.history)
-        with patch("jarvis.local_llm.urlopen", return_value=FakeResponse("Работает")):
+        with patch("jarvis.local_llm.open_local", return_value=FakeResponse("Работает")):
             self.assertEqual("Работает", llm.ask("Повтор"))
         self.assertEqual(2, len(llm.history))
 
     def test_failed_request_not_recorded(self):
-        with patch("jarvis.local_llm.urlopen", side_effect=URLError("offline")):
+        with patch("jarvis.local_llm.open_local", side_effect=URLError("offline")):
             llm = LocalLLM()
             with self.assertRaises(RuntimeError):
                 llm.ask("Неудачный запрос")
