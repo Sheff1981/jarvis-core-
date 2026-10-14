@@ -91,6 +91,14 @@ class TorrentClient:
             raise RuntimeError("Torrent client rejected file priority")
         return True
 
+    def api_version(self, cookie):
+        body, _ = self._request("/api/v2/app/webapiVersion", cookie=cookie)
+        value = body.decode("ascii").strip()
+        parts = value.split(".")
+        if len(parts) < 2 or len(parts) > 4 or any(not p.isdecimal() for p in parts):
+            raise ValueError("Invalid Web API version")
+        return tuple(map(int, parts))
+
     def set_paused(self, cookie, infohash, paused):
         infohash = self._hash(infohash)
         if type(paused) is not bool:
