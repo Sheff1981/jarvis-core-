@@ -4,6 +4,18 @@ from jarvis.torrent_client import TorrentClient
 
 
 class TorrentClientTests(unittest.TestCase):
+    def test_login_returns_session_cookie(self):
+        client = TorrentClient()
+        with patch.object(client, "_request", return_value=(b"Ok.", "SID=secret; HttpOnly")) as request:
+            self.assertEqual(client.login("localuser", "private-password"), "SID=secret")
+            self.assertEqual(request.call_args.args[0], "/api/v2/auth/login")
+
+    def test_login_rejects_bad_credentials(self):
+        client = TorrentClient()
+        with patch.object(client, "_request", return_value=(b"Fails.", "")):
+            with self.assertRaises(PermissionError):
+                client.login("localuser", "incorrect")
+
     def test_only_loopback_endpoint(self):
         with self.assertRaises(ValueError):
             TorrentClient("http://192.168.1.10:8080")
