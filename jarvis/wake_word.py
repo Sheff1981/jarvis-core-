@@ -6,7 +6,7 @@ def extract_command(phrase):
     """Return (activated, command). The caller decides whether to respond."""
     normalized = re.sub(r"[!?.,:;]+", " ", phrase.casefold()).strip()
     normalized = re.sub(r"\s+", " ", normalized)
-    names = ("джарвис", "джервис", "jarvis", "чат", "chat")
+    names = ("джарвис", "джервис", "jarvis")
     for name in names:
         if normalized == name or normalized == "привет " + name:
             return True, "привет"
