@@ -9,7 +9,7 @@ import threading
 import time
 
 from jarvis.permissions import PermissionGate
-from jarvis.windows_perception import list_visible_windows
+from jarvis.windows_perception import list_visible_windows, focus_window_exact
 
 
 class WindowsActions:
@@ -20,10 +20,12 @@ class WindowsActions:
         self.audit_store = audit_store
 
     def propose(self, operation, target):
-        if operation not in ("list_directory", "file_info", "open_explorer", "open_app", "list_windows"):
+        if operation not in ("list_directory", "file_info", "open_explorer", "open_app", "list_windows", "focus_window"):
             raise ValueError("Operation is not supported")
         path = (target.strip().casefold() if operation in ("open_app", "list_windows") else
                 str(Path(target).expanduser().resolve(strict=False)))
+        if operation == "focus_window" and (not target.strip() or len(target) > 4096):
+            raise ValueError("Exact window title required")
         if operation == "list_windows" and path != "desktop":
             raise ValueError("Invalid desktop target")
         if operation == "open_app" and path not in ("notepad", "calculator", "explorer"):
@@ -36,7 +38,9 @@ class WindowsActions:
         if not self.gate.consume(token, operation, path):
             raise PermissionError("Explicit approval is required")
         try:
-            if operation == "list_windows":
+            if operation == "focus_window":
+                result = focus_window_exact(path)
+            elif operation == "list_windows":
                 if path != "desktop":
                     raise ValueError("Invalid desktop target")
                 result = list_visible_windows()
