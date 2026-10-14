@@ -1,50 +1,56 @@
-"""Local voice-in/text-out JARVIS prototype. Requires Vosk Russian model."""
+"""Local voice-in/text-out JARVIS. Speech and errors pass through a thread-safe queue."""
 import argparse
-import threading
 import queue
+import threading
+
 from jarvis.dialogue import Dialogue
 from jarvis.voice import VoiceInput
 
 
 def main():
     parser = argparse.ArgumentParser(description="Offline JARVIS microphone chat")
-    parser.add_argument("--model", required=True, help="Path to extracted Russian Vosk model directory")
+    parser.add_argument("--model", required=True, help="Extracted Russian Vosk model directory")
     parser.add_argument("--db", default="jarvis.db")
     args = parser.parse_args()
+    events = queue.Queue()
     stop = threading.Event()
     jarvis = Dialogue(args.db)
-    phrases = queue.Queue()
 
-    def on_text(phrase):
-        # Audio callback thread must not touch SQLite or run dialogue logic.
-        phrases.put(phrase)
+    def capture():
+        try:
+            VoiceInput(args.model).listen(lambda phrase: events.put(("speech", phrase)), stop)
+        except Exception as exc:
+            events.put(("error", str(exc)))
+        finally:
+            events.put(("ended", ""))
 
-    def worker():
+    microphone = threading.Thread(target=capture, daemon=True)
+    try:
+        microphone.start()
+        print("JARVIS: Слушаю. Скажи 'стоп' или нажми Ctrl+C.", flush=True)
         while not stop.is_set():
             try:
-                phrase = phrases.get(timeout=0.2)
+                kind, value = events.get(timeout=0.2)
             except queue.Empty:
                 continue
-            print("Вы:", phrase, flush=True)
-            answer = jarvis.respond(phrase)
+            if kind == "error":
+                print(f"JARVIS: Ошибка микрофона: {value}", flush=True)
+                break
+            if kind == "ended":
+                print("JARVIS: Голосовой ввод завершён.", flush=True)
+                break
+            print("Вы:", value, flush=True)
+            answer = jarvis.respond(value)
             print("JARVIS:", answer, flush=True)
             if answer == "Останавливаюсь.":
                 stop.set()
-
-    print("JARVIS: Микрофон включён. Скажи 'стоп' или нажми Ctrl+C.")
-    try:
-        # Keep SQLite on its owning thread: microphone runs in worker thread.
-        microphone = threading.Thread(
-            target=VoiceInput(args.model).listen, args=(on_text, stop), daemon=True
-        )
-        microphone.start()
-        worker()
     except KeyboardInterrupt:
-        stop.set()
+        pass
     finally:
         stop.set()
+        microphone.join(timeout=2)
         jarvis.close()
-        print("JARVIS: Микрофон выключен.")
+        print("JARVIS: Микрофон выключен.", flush=True)
 
 
 if __name__ == "__main__":
