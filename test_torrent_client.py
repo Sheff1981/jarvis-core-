@@ -39,6 +39,24 @@ class TorrentClientTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             client.set_paused("SID=local", "course-name", True)
 
+    def test_progress_reports_unknown_eta_as_none(self):
+        client = TorrentClient()
+        sample = [{"hash": "a" * 40, "name": "Course", "progress": 0.375,
+                   "dlspeed": 2048, "state": "downloading", "eta": 8640000}]
+        with patch.object(client, "list_torrents", return_value=sample):
+            result = client.progress("SID=local")
+        self.assertEqual(result[0]["progress_percent"], 37.5)
+        self.assertEqual(result[0]["download_speed_bps"], 2048)
+        self.assertIsNone(result[0]["eta_seconds"])
+
+    def test_progress_rejects_invalid_fraction(self):
+        client = TorrentClient()
+        with patch.object(client, "list_torrents", return_value=[
+            {"hash": "a" * 40, "progress": 1.5}
+        ]):
+            with self.assertRaises(ValueError):
+                client.progress("SID=local")
+
     def test_only_loopback_endpoint(self):
         with self.assertRaises(ValueError):
             TorrentClient("http://192.168.1.10:8080")
