@@ -103,7 +103,8 @@ class TorrentClient:
         infohash = self._hash(infohash)
         if type(paused) is not bool:
             raise ValueError("Paused must be a boolean")
-        endpoint = "/api/v2/torrents/pause" if paused else "/api/v2/torrents/resume"
+        modern = self.api_version(cookie) >= (2, 11)
+        endpoint = ("/api/v2/torrents/stop" if paused else "/api/v2/torrents/start") if modern else ("/api/v2/torrents/pause" if paused else "/api/v2/torrents/resume")
         body, _ = self._request(endpoint, {"hashes": infohash}, cookie)
         if body.strip():
             raise RuntimeError("Torrent client rejected state change")
