@@ -85,7 +85,7 @@ class Speaker:
                     "--output_file", str(wav),
                 ]
                 subprocess.run(
-                    command, input=(message[:1200].strip() + "\\n").encode("utf-8"),
+                    command, input=(message[:1200].strip() + "\n").encode("utf-8"),
                     stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
                     timeout=60, check=True,
                     creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
