@@ -38,6 +38,18 @@ class ShortCommandTests(unittest.TestCase):
         self.dialogue.respond("Случайный текст")
         self.assertEqual(self.dialogue.projects.list(), [])
 
+    def test_project_list_discards_pending_project_name(self):
+        self.dialogue.respond("Добавь проект")
+        self.dialogue.respond("какие проекты")
+        self.dialogue.respond("Случайный текст")
+        self.assertEqual(self.dialogue.projects.list(), [])
+
+    def test_mode_switch_discards_pending_project_name(self):
+        self.dialogue.respond("Добавь проект")
+        self.dialogue.respond("Работай")
+        self.dialogue.respond("Случайный текст")
+        self.assertEqual(self.dialogue.projects.list(), [])
+
     def test_workay_switches_session_mode_without_actions(self):
         response = self.dialogue.respond("Работай")
         self.assertIn("Рабочий режим", response)
