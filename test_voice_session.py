@@ -9,13 +9,13 @@ class FakeAssistant:
 
 
 class FakeMicrophone:
-    def listen(self, on_text, stop_event):
+    def listen(self, on_text, stop_event, should_listen=None):
         on_text("стоп")
         stop_event.wait(1)
 
 
 class BrokenMicrophone:
-    def listen(self, on_text, stop_event):
+    def listen(self, on_text, stop_event, should_listen=None):
         raise RuntimeError("Устройство недоступно")
 
 
@@ -24,7 +24,7 @@ class EchoMicrophone:
         self.emit = None
         self.ready = threading.Event()
 
-    def listen(self, on_text, stop_event):
+    def listen(self, on_text, stop_event, should_listen=None):
         self.emit = on_text
         self.ready.set()
         on_text("привет")
