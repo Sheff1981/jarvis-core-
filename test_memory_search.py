@@ -16,14 +16,16 @@ class SearchTests(unittest.TestCase):
             store = ConversationStore(str(Path(folder) / "test.db"))
             store.append_exchange("Проект LIZORIA", "Делаем локальную память")
             store.append_exchange("Проект QUINTUM", "Обсудили тесты")
+            store.append_exchange("Тест памяти", "Только локально")
             self.assertEqual(
-                store.search("лизория"),
+                store.search("lizoria"),
                 [{"role": "user", "content": "Проект LIZORIA"}],
             )
             self.assertEqual(
                 store.search("ПРОЕКТ", limit=1),
                 [{"role": "user", "content": "Проект QUINTUM"}],
             )
+            self.assertEqual(store.search("пАмЯтИ"), [{"role": "user", "content": "Тест памяти"}])
             self.assertEqual(store.search(""), [])
             store.close()
 
