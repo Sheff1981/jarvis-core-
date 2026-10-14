@@ -49,7 +49,7 @@ class ActionDialogue:
 
         focus = re.fullmatch(r"(?:джарвис[,! ]+)?(?:переключись на окно|активируй окно)\s+(.+)", phrase, re.IGNORECASE)
         if focus:
-            request = self.actions.propose("focus_window", focus.group(1).strip().strip(\u0027"\u0027))
+            request = self.actions.propose("focus_window", focus.group(1).strip().strip(chr(34)))
             self.pending = request
             self._log(request, "requested")
             return "Разрешаешь переключиться на окно «" + request.target + "»? Ответь «разрешаю» или «нет»."
