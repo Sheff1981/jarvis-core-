@@ -27,10 +27,13 @@ MEMORY_SEARCH = re.compile(
 class Assistant:
     def __init__(self, db_path="jarvis.db", model="qwen2.5:3b", llm=None):
         self.modes = ModeController()
+        self.modes.mode = "chat"
         self.dialogue = Dialogue(db_path)
         self.action_audit = ActionAudit(db_path)
         self.action_dialogue = ActionDialogue(WindowsActions(audit_store=self.action_audit))
         self.llm = llm if llm is not None else LocalLLM(model=model)
+        if hasattr(self.llm, "mode"):
+            self.llm.mode = self.modes.mode
         self.conversations = ConversationStore(db_path)
         self.facts = FactStore(db_path)
         if hasattr(self.llm, "history") and hasattr(self.llm, "max_turns"):
