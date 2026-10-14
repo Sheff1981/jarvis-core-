@@ -14,7 +14,7 @@ class ActionDialogue:
         if self.pending is not None:
             request = self.pending
             self.pending = None
-            if phrase.casefold() in ("да", "разрешаю", "подтверждаю"):
+            if phrase.casefold() in ("разрешаю", "подтверждаю", "да, разрешаю", "да разрешаю"):
                 if not self.actions.gate.approve(request.token):
                     return "Разрешение больше не действует."
                 try:
@@ -77,7 +77,7 @@ class ActionDialogue:
             self.pending = request
             return (
                 f"Разрешаешь действие {operation} для {request.target}? "
-                "Ответь «разрешаю» или «нет»."
+                "Ответь «разрешаю» или «нет». Разрешение действует 60 секунд."
             )
         return None
 
