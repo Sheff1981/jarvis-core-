@@ -26,6 +26,18 @@ class FactTests(unittest.TestCase):
                           second.respond("что ты помнишь о проекте LIZORIA"))
             second.close()
 
+    def test_duplicate_fact_reuses_id_across_restart(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = str(Path(folder) / "memory.db")
+            first = Assistant(path, llm=OfflineOnly())
+            first.respond("Для проекта LIZORIA запомни, что сайт готов")
+            first.close()
+            second = Assistant(path, llm=OfflineOnly())
+            result = second.respond("для проекта lizoria запомни, что САЙТ ГОТОВ")
+            self.assertIn("факт 1", result)
+            self.assertEqual(len(second.facts.list("LIZORIA")), 1)
+            second.close()
+
     def test_fact_commands_do_not_touch_other_projects(self):
         with tempfile.TemporaryDirectory() as folder:
             assistant = Assistant(str(Path(folder) / "memory.db"), llm=OfflineOnly())
