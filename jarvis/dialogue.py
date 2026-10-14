@@ -1,10 +1,12 @@
-"""A safe, deterministic first conversational layer for project memory."""
+"""A conservative conversational layer with short-lived project context."""
 import re
 from jarvis.projects import Projects
+
 
 class Dialogue:
     def __init__(self, db_path="jarvis.db"):
         self.projects = Projects(db_path)
+        self.pending_project_id = None
 
     def respond(self, utterance):
         text = utterance.strip()
@@ -12,8 +14,16 @@ class Dialogue:
         if not text:
             return "Я слушаю."
         if normalized in ("стоп", "джарвис стоп", "джарвис, стоп", "выход"):
+            self.pending_project_id = None
             return "Останавливаюсь."
-        if any(phrase in normalized for phrase in ("какие проекты", "список проектов", "что не закончено", "что у нас не закончено")):
+        if normalized in ("отмена", "не запоминай", "джарвис отмена"):
+            self.pending_project_id = None
+            return "Хорошо, ожидающее уточнение отменено."
+        if any(phrase in normalized for phrase in (
+            "какие проекты", "список проектов", "что не закончено",
+            "что у нас не закончено"
+        )):
+            self.pending_project_id = None
             projects = self.projects.list()
             if not projects:
                 return "Незавершённых проектов в моей локальной памяти пока нет."
@@ -21,13 +31,21 @@ class Dialogue:
                 f"{i}. {p['name']}. Следующий шаг: {p['next_step'] or 'не определён'}."
                 for i, p in enumerate(projects, 1)
             )
-        match = re.fullmatch(r"(?:джарвис[, ]+)?(?:запомни проект|добавь проект)\s+(.+)", text, flags=re.I)
+        match = re.fullmatch(
+            r"(?:джарвис[, ]+)?(?:запомни проект|добавь проект)\s+(.+)",
+            text, flags=re.I
+        )
         if match:
             name = match.group(1).strip()
             if not name:
                 return "Назови проект."
-            self.projects.add(name)
+            self.pending_project_id = self.projects.add(name)
             return f"Запомнил проект: {name}. Какой следующий шаг?"
+        if self.pending_project_id is not None:
+            project_id = self.pending_project_id
+            self.pending_project_id = None
+            self.projects.update(project_id, next_step=text)
+            return f"Следующий шаг записан: {text}."
         if normalized in ("привет", "джарвис привет", "джарвис, привет"):
             return "Привет. Готов продолжать работу."
         return "Пока не умею выполнять эту просьбу. Могу запомнить проект или перечислить незавершённые."
