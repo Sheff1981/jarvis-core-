@@ -18,7 +18,7 @@ class WakeIntegrationTests(unittest.TestCase):
         wrapper = WakeAssistant(inner)
         self.assertIsNone(wrapper.respond("посторонний разговор"))
         self.assertEqual(inner.commands, [])
-        self.assertEqual(wrapper.respond("Привет, Чат"), "Привет.")
+        self.assertEqual(wrapper.respond("Привет, Джервис"), "Привет.")
         self.assertEqual(wrapper.respond("Джарвис, стоп"), "Останавливаюсь.")
         self.assertEqual(inner.commands, ["привет", "стоп"])
 
