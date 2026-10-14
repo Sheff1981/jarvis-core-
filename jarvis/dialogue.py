@@ -2,13 +2,15 @@
 import re
 from jarvis.projects import Projects
 from jarvis.session import Session, Mode
+from jarvis.local_model import LocalModelError
 
 
 class Dialogue:
-    def __init__(self, db_path="jarvis.db"):
+    def __init__(self, db_path="jarvis.db", model=None):
         self.projects = Projects(db_path)
         self.pending_project_id = None
         self.session = Session()
+        self.model = model
 
     def respond(self, utterance):
         text = utterance.strip()
@@ -60,6 +62,19 @@ class Dialogue:
             return f"Следующий шаг записан: {text}."
         if normalized in ("привет", "джарвис привет", "джарвис, привет"):
             return "Привет. Готов продолжать работу."
+        if self.model is not None:
+            messages = [{"role": "system", "content": (
+                "Ты JARVIS, локальный помощник. Отвечай по-русски. "
+                "Ты не выполняешь действия с компьютером через этот канал. "
+                "Не утверждай, что совершил действие.")}]
+            messages.extend({"role": role, "content": message}
+                            for role, message in self.session.history[-18:])
+            try:
+                answer = self.model.reply(messages)
+            except LocalModelError:
+                return "Локальная модель недоступна. Команды памяти продолжают работать."
+            self.session.append("assistant", answer)
+            return answer
         return "Пока не умею выполнять эту просьбу. Могу запомнить проект или перечислить незавершённые."
 
     def close(self):
