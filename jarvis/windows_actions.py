@@ -35,7 +35,7 @@ class WindowsActions:
         return self.gate.propose(operation, path, f"{operation}: {path}")
 
     def execute(self, token, operation, target):
-        path = (target.strip() if operation == "focus_window" else target.strip().casefold() if operation in ("open_app", "list_windows", "capture_screen") else
+        path = (target.strip() if operation == "focus_window" else target.strip().casefold() if operation in ("open_app", "list_windows", "capture_screen", "read_screen_text") else
                 str(Path(target).expanduser().resolve(strict=False)))
         if not self.gate.consume(token, operation, path):
             raise PermissionError("Explicit approval is required")
