@@ -23,6 +23,8 @@ class ActionDialogue:
                     )
                 except (OSError, ValueError, PermissionError) as exc:
                     return "Не удалось выполнить действие: " + str(exc)
+                if isinstance(result, dict) and "launched" in result:
+                    return "Запускаю приложение: " + result["launched"]
                 if isinstance(result, dict) and "opened" in result:
                     return "Открываю в Проводнике: " + result["opened"]
                 if isinstance(result, list):
@@ -52,6 +54,14 @@ class ActionDialogue:
                 phrase, re.IGNORECASE
             )
             operation = "open_explorer" if match else None
+        if not match:
+            match = re.fullmatch(
+                r"(?:джарвис[,! ]+)?(?:открой|запусти|открыть)"
+                r"\s+(?:мне\s+)?(?:приложение\s+|программу\s+)?"
+                r"(блокнот|калькулятор|проводник)",
+                phrase, re.IGNORECASE
+            )
+            operation = "open_app" if match else None
         if match:
             target = match.group(1).strip().strip('"')
             if operation == "open_explorer" and re.fullmatch(
@@ -60,6 +70,9 @@ class ActionDialogue:
                 latin = {"с": "C", "д": "D", "е": "E"}
                 drive = latin.get(target.casefold(), target.upper())
                 target = drive + ":\\"
+            if operation == "open_app":
+                target = {"блокнот": "notepad", "калькулятор": "calculator",
+                          "проводник": "explorer"}[target.casefold()]
             request = self.actions.propose(operation, target)
             self.pending = request
             return (
