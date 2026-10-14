@@ -3,6 +3,7 @@ import re
 from jarvis.projects import Projects
 from jarvis.session import Session, Mode
 from jarvis.local_model import LocalModelError
+from jarvis.conversation_memory import ConversationMemory
 
 
 class Dialogue:
@@ -11,6 +12,7 @@ class Dialogue:
         self.pending_project_id = None
         self.session = Session()
         self.model = model
+        self.conversation = ConversationMemory(db_path)
 
     def respond(self, utterance):
         text = utterance.strip()
@@ -67,15 +69,18 @@ class Dialogue:
                 "Ты JARVIS, локальный помощник. Отвечай по-русски. "
                 "Ты не выполняешь действия с компьютером через этот канал. "
                 "Не утверждай, что совершил действие.")}]
-            messages.extend({"role": role, "content": message}
-                            for role, message in self.session.history[-18:])
+            messages.extend(self.conversation.recent(18))
+            messages.append({"role": "user", "content": text})
             try:
                 answer = self.model.reply(messages)
             except LocalModelError:
                 return "Локальная модель недоступна. Команды памяти продолжают работать."
             self.session.append("assistant", answer)
+            self.conversation.append("user", text)
+            self.conversation.append("assistant", answer)
             return answer
         return "Пока не умею выполнять эту просьбу. Могу запомнить проект или перечислить незавершённые."
 
     def close(self):
+        self.conversation.close()
         self.projects.close()
