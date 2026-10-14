@@ -14,9 +14,11 @@ class ModeTests(unittest.TestCase):
             assistant = Assistant(db_path=folder + "/test.db", llm=llm)
             assistant.action_dialogue.respond = Mock(side_effect=AssertionError("tool invoked"))
             self.assertIn("поговорим", assistant.respond("Джарвис, давай поговорим"))
+            self.assertEqual("chat", llm.mode)
             self.assertEqual("Я слушаю.", assistant.respond("открой блокнот"))
             assistant.action_dialogue.respond.assert_not_called()
             self.assertIn("создать", assistant.respond("давай что-нибудь создадим"))
+            self.assertEqual("work", llm.mode)
             assistant.close()
 
     def test_chat_cancels_pending_approval(self):
