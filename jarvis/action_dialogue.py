@@ -29,6 +29,8 @@ class ActionDialogue:
                     )
                 except (OSError, ValueError, PermissionError) as exc:
                     return "Не удалось выполнить действие: " + str(exc)
+                if isinstance(result, dict) and "focused" in result:
+                    return "Переключаюсь на окно: " + result["focused"]
                 if isinstance(result, dict) and "launched" in result:
                     return "Запускаю приложение: " + result["launched"]
                 if isinstance(result, dict) and "opened" in result:
@@ -44,6 +46,13 @@ class ActionDialogue:
             self.actions.gate.deny(request.token)
             self._log(request, "denied")
             return "Действие отменено. Для новой операции нужен новый запрос."
+
+        focus = re.fullmatch(r"(?:джарвис[,! ]+)?(?:переключись на окно|активируй окно)\s+(.+)", phrase, re.IGNORECASE)
+        if focus:
+            request = self.actions.propose("focus_window", focus.group(1).strip().strip(\u0027"\u0027))
+            self.pending = request
+            self._log(request, "requested")
+            return "Разрешаешь переключиться на окно «" + request.target + "»? Ответь «разрешаю» или «нет»."
 
         if re.fullmatch(r"(?:джарвис[,! ]+)?(?:покажи открытые окна|какие окна открыты|список открытых окон)", phrase, re.IGNORECASE):
             request = self.actions.propose("list_windows", "desktop")
