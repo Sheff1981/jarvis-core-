@@ -47,6 +47,10 @@ def main():
                         help="Path to the local Piper executable")
     parser.add_argument("--piper-voice", default=None,
                         help="Path to a local Piper .onnx voice model")
+    parser.add_argument("--piper-length-scale", type=float, default=1.0,
+                        help="Piper phoneme duration: 1.15 speaks more deliberately")
+    parser.add_argument("--piper-sentence-silence", type=float, default=0.0,
+                        help="Pause between spoken sentences in seconds")
     parser.add_argument("--cpu-only", action="store_true",
                         help="Run Ollama on CPU with a low-memory profile (no CUDA)")
     parser.add_argument("--tray", action="store_true", help="Show a system tray with mute and exit")
@@ -55,10 +59,16 @@ def main():
         not args.piper_bin or not args.piper_voice
     ):
         parser.error("--tts piper requires --piper-bin and --piper-voice")
+    piper_pacing = {}
+    if args.piper_length_scale != 1.0:
+        piper_pacing["piper_length_scale"] = args.piper_length_scale
+    if args.piper_sentence_silence != 0.0:
+        piper_pacing["piper_sentence_silence"] = args.piper_sentence_silence
     if args.voice_preview:
         speaker = Speaker(
             enabled=True, backend=args.tts,
             piper_exe=args.piper_bin, voice_model=args.piper_voice,
+            **piper_pacing,
         )
         try:
             phrase = (
@@ -90,7 +100,8 @@ def main():
             else:
                 assistant = Assistant(db_path=args.db, model=args.llm_model)
             speaker = Speaker(enabled=args.speak, backend=args.tts,
-                              piper_exe=args.piper_bin, voice_model=args.piper_voice)
+                              piper_exe=args.piper_bin, voice_model=args.piper_voice,
+                              **piper_pacing)
             # One wake gate in VoiceSession. Wrapping WakeAssistant here used to
             # consume the wake phrase twice, dropping the first user command.
             session = VoiceSession(
