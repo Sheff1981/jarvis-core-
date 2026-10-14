@@ -10,6 +10,7 @@ import time
 
 from jarvis.permissions import PermissionGate
 from jarvis.screen_capture import capture_screen_png
+from jarvis.screen_ocr import recognize_screen_text
 from jarvis.windows_perception import list_visible_windows, focus_window_exact
 
 
@@ -21,13 +22,13 @@ class WindowsActions:
         self.audit_store = audit_store
 
     def propose(self, operation, target):
-        if operation not in ("list_directory", "file_info", "open_explorer", "open_app", "list_windows", "focus_window", "capture_screen"):
+        if operation not in ("list_directory", "file_info", "open_explorer", "open_app", "list_windows", "focus_window", "capture_screen", "read_screen_text"):
             raise ValueError("Operation is not supported")
-        path = (target.strip() if operation == "focus_window" else target.strip().casefold() if operation in ("open_app", "list_windows", "capture_screen") else
+        path = (target.strip() if operation == "focus_window" else target.strip().casefold() if operation in ("open_app", "list_windows", "capture_screen", "read_screen_text") else
                 str(Path(target).expanduser().resolve(strict=False)))
         if operation == "focus_window" and (not target.strip() or len(target) > 4096):
             raise ValueError("Exact window title required")
-        if operation in ("list_windows", "capture_screen") and path != "desktop":
+        if operation in ("list_windows", "capture_screen", "read_screen_text") and path != "desktop":
             raise ValueError("Invalid desktop target")
         if operation == "open_app" and path not in ("notepad", "calculator", "explorer"):
             raise ValueError("Application is not in the approved catalog")
@@ -39,7 +40,13 @@ class WindowsActions:
         if not self.gate.consume(token, operation, path):
             raise PermissionError("Explicit approval is required")
         try:
-            if operation == "capture_screen":
+            if operation == "read_screen_text":
+                image = capture_screen_png()
+                try:
+                    result = {"screen_text": recognize_screen_text(image)}
+                finally:
+                    del image
+            elif operation == "capture_screen":
                 image = capture_screen_png()
                 result = {"captured": True, "bytes": len(image)}
                 del image
