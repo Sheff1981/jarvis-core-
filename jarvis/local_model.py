@@ -3,6 +3,7 @@ import json
 import urllib.error
 import urllib.request
 from urllib.parse import urlsplit
+from jarvis.local_transport import open_local
 
 
 class LocalModelError(RuntimeError):
@@ -33,7 +34,7 @@ class Ollama:
         payload = json.dumps({"model": self.model, "messages": safe, "stream": False, "options": {"num_predict": 512}}).encode("utf-8")
         request = urllib.request.Request(self.endpoint + "/api/chat", data=payload, headers={"Content-Type": "application/json"}, method="POST")
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            with open_local(request, timeout=self.timeout) as response:
                 if response.status != 200:
                     raise LocalModelError("Local model returned an unsuccessful status")
                 data = response.read(1024 * 1024 + 1)
