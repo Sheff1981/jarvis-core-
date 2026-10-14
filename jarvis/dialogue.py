@@ -15,6 +15,8 @@ class Dialogue:
         self.conversation = ConversationMemory(db_path)
 
     def respond(self, utterance):
+        if not isinstance(utterance, str):
+            raise TypeError("Utterance must be text")
         text = utterance.strip()
         normalized = text.casefold()
         if text:
@@ -31,7 +33,13 @@ class Dialogue:
             return "Я слушаю."
         if normalized in ("стоп", "джарвис стоп", "джарвис, стоп", "выход"):
             self.pending_project_id = None
+            self.session.clear()
             return "Останавливаюсь."
+        if normalized in ("очисти историю разговора", "забудь наш разговор"):
+            self.pending_project_id = None
+            self.conversation.clear()
+            self.session.clear()
+            return "История разговора удалена из локальной памяти."
         if normalized in ("отмена", "не запоминай", "джарвис отмена"):
             self.pending_project_id = None
             return "Хорошо, ожидающее уточнение отменено."
