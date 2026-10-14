@@ -23,6 +23,8 @@ class ActionDialogue:
                     )
                 except (OSError, ValueError, PermissionError) as exc:
                     return "Не удалось выполнить действие: " + str(exc)
+                if isinstance(result, dict) and "opened" in result:
+                    return "Открываю в Проводнике: " + result["opened"]
                 if isinstance(result, list):
                     return "Содержимое папки:\n" + "\n".join(result) if result else "Папка пуста."
                 return (
@@ -43,8 +45,21 @@ class ActionDialogue:
                 phrase, re.IGNORECASE
             )
             operation = "file_info" if match else None
+        if not match:
+            match = re.fullmatch(
+                r"(?:джарвис[,! ]+)?(?:открой|открыть|покажи)"
+                r"\s+(?:мне\s+)?(?:диск|папку)\s+(.+)",
+                phrase, re.IGNORECASE
+            )
+            operation = "open_explorer" if match else None
         if match:
             target = match.group(1).strip().strip('"')
+            if operation == "open_explorer" and re.fullmatch(
+                r"[a-zа-я]", target, re.IGNORECASE
+            ):
+                latin = {"с": "C", "д": "D", "е": "E"}
+                drive = latin.get(target.casefold(), target.upper())
+                target = drive + ":\\"
             request = self.actions.propose(operation, target)
             self.pending = request
             return (
