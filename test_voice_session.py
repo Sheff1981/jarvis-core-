@@ -64,6 +64,31 @@ class VoiceSessionTests(unittest.TestCase):
         session.run(lambda kind, value: None)
         self.assertEqual([], seen)
 
+    def test_muted_session_discards_queued_speech(self):
+        class Controller:
+            muted = False
+            exit_requested = False
+
+        class Input:
+            def listen(self, on_text, stop_event, should_listen=None):
+                on_text("открой блокнот")
+                stop_event.wait(1)
+
+        class Assistant:
+            def respond(self, phrase):
+                seen.append(phrase)
+                return "Понял."
+
+        controller = Controller()
+        seen = []
+        session = VoiceSession(Assistant(), Input(), controller=controller)
+        def on_event(kind, value):
+            pass
+        controller.muted = True
+        session.request_stop()
+        session.run(on_event)
+        self.assertEqual([], seen)
+
     def test_empty_transcriptions_are_ignored(self):
         class Input:
             def listen(self, on_text, stop_event, should_listen=None):
