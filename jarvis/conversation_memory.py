@@ -1,40 +1,37 @@
-"""Durable conversation turns, kept separate from project records."""
-import sqlite3
-from datetime import datetime, timezone
+"""Compatibility facade for the existing conversation_turns schema.
+
+The canonical table is owned by ConversationStore (created REAL).
+Do not create a competing schema in the same SQLite database.
+"""
+import time
+
+from jarvis.conversation_store import ConversationStore
 
 
 class ConversationMemory:
     def __init__(self, db_path="jarvis.db"):
-        self.connection = sqlite3.connect(db_path)
-        self.connection.execute("""
-            CREATE TABLE IF NOT EXISTS conversation_turns (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                role TEXT NOT NULL CHECK(role IN ('user','assistant')),
-                content TEXT NOT NULL,
-                created_at TEXT NOT NULL
-            )
-        """)
-        self.connection.commit()
+        self.store = ConversationStore(db_path)
 
     def append(self, role, content):
         if role not in ("user", "assistant") or not isinstance(content, str):
             raise ValueError("Invalid conversation turn")
-        self.connection.execute(
-            "INSERT INTO conversation_turns (role,content,created_at) VALUES (?,?,?)",
-            (role, content[:8000], datetime.now(timezone.utc).isoformat()))
-        self.connection.commit()
+        with self.store.db:
+            self.store.db.execute(
+                "INSERT INTO conversation_turns(role,content,created) VALUES (?,?,?)",
+                (role, content[:8000], time.time()),
+            )
 
     def recent(self, limit=20):
         if not isinstance(limit, int) or not 1 <= limit <= 100:
             raise ValueError("Invalid history limit")
-        rows = self.connection.execute(
+        rows = self.store.db.execute(
             "SELECT role,content FROM conversation_turns ORDER BY id DESC LIMIT ?",
-            (limit,)).fetchall()
-        return list(reversed([{"role": role, "content": content} for role, content in rows]))
+            (limit,),
+        ).fetchall()
+        return [{"role": role, "content": content} for role, content in reversed(rows)]
 
     def clear(self):
-        self.connection.execute("DELETE FROM conversation_turns")
-        self.connection.commit()
+        self.store.clear()
 
     def close(self):
-        self.connection.close()
+        self.store.close()
