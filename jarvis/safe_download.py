@@ -1,12 +1,13 @@
 """Conservative HTTPS downloader: approval per URL, bounded size, no execution."""
 import hashlib
+import http.client
+import ssl
 import ipaddress
 import os
 from pathlib import Path
 import socket
 import tempfile
 from urllib.parse import urlsplit
-from urllib.request import build_opener, HTTPRedirectHandler, Request
 
 from jarvis.permissions import PermissionGate
 
@@ -28,9 +29,16 @@ def validate_url(url):
     return url
 
 
-class NoRedirect(HTTPRedirectHandler):
-    def redirect_request(self, request, fp, code, msg, headers, newurl):
-        raise ValueError("Redirects require a separate approval")
+class PinnedHTTPSConnection(http.client.HTTPSConnection):
+    """TLS checks the hostname while TCP uses a vetted public IP."""
+
+    def __init__(self, hostname, address):
+        super().__init__(hostname, port=443, timeout=20, context=ssl.create_default_context())
+        self.address = address
+
+    def connect(self):
+        self.sock = socket.create_connection((self.address, 443), self.timeout)
+        self.sock = self._context.wrap_socket(self.sock, server_hostname=self.host)
 
 
 class DownloadManager:
@@ -58,10 +66,21 @@ class DownloadManager:
         count = 0
         try:
             with os.fdopen(fd, "wb") as output:
-                opener = build_opener(NoRedirect)
-                with opener.open(Request(url, headers={"User-Agent": "JARVIS/0.1"}), timeout=20) as response:
-                    if response.geturl() != url:
-                        raise ValueError("Unexpected redirect")
+                parsed = urlsplit(url)
+                records = socket.getaddrinfo(parsed.hostname, 443, type=socket.SOCK_STREAM)
+                if not records or any(
+                    not ipaddress.ip_address(record[4][0]).is_global for record in records
+                ):
+                    raise ValueError("Nonpublic network addresses are prohibited")
+                connection = PinnedHTTPSConnection(parsed.hostname, records[0][4][0])
+                try:
+                    path = parsed.path or "/"
+                    if parsed.query:
+                        path += "?" + parsed.query
+                    connection.request("GET", path, headers={"User-Agent": "JARVIS/0.1"})
+                    response = connection.getresponse()
+                    if response.status != 200:
+                        raise ValueError("Unexpected HTTP status or redirect")
                     while True:
                         chunk = response.read(min(65536, MAX_BYTES + 1 - count))
                         if not chunk:
@@ -71,6 +90,8 @@ class DownloadManager:
                             raise ValueError("Download exceeds 100 MiB")
                         digest.update(chunk)
                         output.write(chunk)
+                finally:
+                    connection.close()
             # Atomic no-overwrite publication; destination must not already exist.
             os.link(temporary, target)
             return {"path": str(target), "bytes": count, "sha256": digest.hexdigest()}
