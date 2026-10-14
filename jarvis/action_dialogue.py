@@ -33,6 +33,8 @@ class ActionDialogue:
                     return "Запускаю приложение: " + result["launched"]
                 if isinstance(result, dict) and "opened" in result:
                     return "Открываю в Проводнике: " + result["opened"]
+                if request.operation == "list_windows":
+                    return "Открытые окна:\n" + "\n".join(result) if result else "Открытых окон с заголовками нет."
                 if isinstance(result, list):
                     return "Содержимое папки:\n" + "\n".join(result) if result else "Папка пуста."
                 return (
@@ -42,6 +44,12 @@ class ActionDialogue:
             self.actions.gate.deny(request.token)
             self._log(request, "denied")
             return "Действие отменено. Для новой операции нужен новый запрос."
+
+        if re.fullmatch(r"(?:джарвис[,! ]+)?(?:покажи открытые окна|какие окна открыты|список открытых окон)", phrase, re.IGNORECASE):
+            request = self.actions.propose("list_windows", "desktop")
+            self.pending = request
+            self._log(request, "requested")
+            return "Разрешаешь прочитать заголовки открытых окон? Ответь «разрешаю» или «нет»."
 
         match = re.fullmatch(
             r"(?:покажи содержимое папки|что в папке|список файлов в папке)\s+(.+)",
