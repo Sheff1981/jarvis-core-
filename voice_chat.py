@@ -33,12 +33,14 @@ class WakeAssistant:
 
 def main():
     parser = argparse.ArgumentParser(description="Offline JARVIS voice assistant")
-    parser.add_argument("--model", required=True, help="Extracted Vosk Russian model directory")
+    parser.add_argument("--model", required=False, help="Extracted Vosk Russian model directory")
     parser.add_argument("--llm-model", default="qwen2.5:3b")
     parser.add_argument("--db", default="jarvis.db")
     parser.add_argument("--always-listen", action="store_true",
                         help="Opt in to processing speech without wake-word activation")
     parser.add_argument("--speak", action="store_true")
+    parser.add_argument("--voice-preview", action="store_true",
+                        help="Speak one test phrase without starting Ollama or microphone")
     parser.add_argument("--tts", choices=("sapi", "piper"), default="sapi",
                         help="Offline speech engine; SAPI stays default")
     parser.add_argument("--piper-bin", default=None,
@@ -49,10 +51,27 @@ def main():
                         help="Run Ollama on CPU with a low-memory profile (no CUDA)")
     parser.add_argument("--tray", action="store_true", help="Show a system tray with mute and exit")
     args = parser.parse_args()
-    if args.speak and args.tts == "piper" and (
+    if (args.speak or args.voice_preview) and args.tts == "piper" and (
         not args.piper_bin or not args.piper_voice
     ):
         parser.error("--tts piper requires --piper-bin and --piper-voice")
+    if args.voice_preview:
+        speaker = Speaker(
+            enabled=True, backend=args.tts,
+            piper_exe=args.piper_bin, voice_model=args.piper_voice,
+        )
+        try:
+            phrase = (
+                "Привет. Я Джарвис. Проверка мужского голоса. "
+                "Давайте продолжим разработку проекта."
+            )
+            print("JARVIS:", phrase, flush=True)
+            speaker.say(phrase)
+        finally:
+            speaker.close()
+        return
+    if not args.model:
+        parser.error("--model is required outside --voice-preview")
 
     controller = TrayController()
     worker_done = threading.Event()
