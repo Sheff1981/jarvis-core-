@@ -22,14 +22,22 @@ def _russian_voice(voice):
 
 
 class Speaker:
-    def __init__(self, enabled=False, rate=175):
+    def __init__(self, enabled=False, rate=175, backend="sapi",
+                 piper_exe=None, voice_model=None):
+        if backend not in ("sapi", "piper"):
+            raise ValueError("Unsupported offline speech backend")
         self.enabled = enabled
         self.rate = rate
+        self.backend = backend
+        self.piper_exe = piper_exe
+        self.voice_model = voice_model
         self._engine = None
 
     def say(self, message):
         if not self.enabled or not message:
             return False
+        if self.backend == "piper":
+            return self._say_piper(message)
         if self._engine is None:
             try:
                 import pyttsx3
@@ -50,6 +58,43 @@ class Speaker:
             self._engine.runAndWait()
         except Exception as exc:
             raise RuntimeError("Не удалось воспроизвести голосовой ответ.") from exc
+        return True
+
+    def _say_piper(self, message):
+        """Run the explicitly configured local Piper binary; never a shell."""
+        import subprocess
+        import tempfile
+        from pathlib import Path
+
+        binary = Path(self.piper_exe) if self.piper_exe else None
+        model = Path(self.voice_model) if self.voice_model else None
+        if binary is None or not binary.is_file():
+            raise RuntimeError("Файл piper.exe не найден. Проверь параметр --piper-bin.")
+        if model is None or model.suffix.lower() != ".onnx" or not model.is_file():
+            raise RuntimeError("Модель голоса Piper не найдена. Проверь --piper-voice.")
+        if not Path(str(model) + ".json").is_file():
+            raise RuntimeError("Отсутствует конфигурация голоса Piper (.onnx.json).")
+        try:
+            import winsound
+            with tempfile.TemporaryDirectory(prefix="jarvis-tts-",
+                                               dir=str(model.parent)) as folder:
+                wav = Path(folder) / "response.wav"
+                command = [
+                    str(binary), "--model", str(model),
+                    "--config", str(model) + ".json",
+                    "--output_file", str(wav),
+                ]
+                subprocess.run(
+                    command, input=(message[:1200].strip() + "\\n").encode("utf-8"),
+                    stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                    timeout=60, check=True,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                )
+                if not wav.is_file() or wav.stat().st_size < 44:
+                    raise RuntimeError("Piper не создал звуковой файл.")
+                winsound.PlaySound(str(wav), winsound.SND_FILENAME)
+        except (subprocess.SubprocessError, OSError) as exc:
+            raise RuntimeError("Не удалось синтезировать или воспроизвести голос Piper.") from exc
         return True
 
     def close(self):
