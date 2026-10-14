@@ -1,8 +1,24 @@
 import unittest
+from unittest.mock import patch
 from jarvis.permissions import PermissionGate
 
 
 class PermissionTests(unittest.TestCase):
+    def test_pending_approval_expires(self):
+        with patch("jarvis.permissions.time.monotonic", return_value=100):
+            gate = PermissionGate(ttl_seconds=5)
+            request = gate.propose("read", "C:/", "Read disk")
+        with patch("jarvis.permissions.time.monotonic", return_value=106):
+            self.assertFalse(gate.approve(request.token))
+
+    def test_approved_token_expires_before_execution(self):
+        with patch("jarvis.permissions.time.monotonic", return_value=100):
+            gate = PermissionGate(ttl_seconds=5)
+            request = gate.propose("read", "C:/", "Read disk")
+            self.assertTrue(gate.approve(request.token))
+        with patch("jarvis.permissions.time.monotonic", return_value=106):
+            self.assertFalse(gate.consume(request.token, "read", "C:/"))
+
     def test_denied_by_default_and_single_use(self):
         gate = PermissionGate()
         request = gate.propose("delete", "C:/tmp/a.txt", "Удалить файл")
