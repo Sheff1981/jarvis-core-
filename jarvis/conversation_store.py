@@ -32,6 +32,26 @@ class ConversationStore:
         ).fetchall()
         return [{"role": role, "content": content} for role, content in reversed(rows)]
 
+    def search(self, term, limit=5):
+        """Case-insensitive literal substring search; newest matching turns first."""
+        term = term.strip()
+        if not term:
+            return []
+        if not isinstance(limit, int) or not 1 <= limit <= 50:
+            raise ValueError("limit must be between 1 and 50")
+        # SQLite LIKE is ASCII-case-insensitive only; Python casefold handles Cyrillic.
+        rows = self.db.execute(
+            "SELECT role, content FROM conversation_turns ORDER BY id DESC"
+        )
+        needle = term.casefold()
+        matches = []
+        for role, content in rows:
+            if needle in content.casefold():
+                matches.append({"role": role, "content": content})
+                if len(matches) >= limit:
+                    break
+        return matches
+
     def clear(self):
         with self.db:
             self.db.execute("DELETE FROM conversation_turns")
