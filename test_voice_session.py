@@ -32,6 +32,23 @@ class EchoMicrophone:
 
 
 class VoiceSessionTests(unittest.TestCase):
+    def test_assistant_exception_stops_session_and_reports_error(self):
+        class BrokenAssistant:
+            def respond(self, phrase):
+                raise ValueError("simulated failure")
+
+        class Input:
+            def listen(self, on_text, stop_event, should_listen=None):
+                on_text("привет")
+                stop_event.wait(1)
+
+        events = []
+        session = VoiceSession(BrokenAssistant(), Input())
+        session.run(lambda kind, value: events.append((kind, value)))
+        self.assertTrue(session.stop_event.is_set())
+        self.assertTrue(any(kind == "error" and "simulated failure" in value
+                            for kind, value in events))
+
     def test_routes_voice_and_stops(self):
         events = []
         session = VoiceSession(FakeAssistant(), FakeMicrophone())
