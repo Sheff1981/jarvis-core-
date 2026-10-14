@@ -2,6 +2,7 @@
 
 No shell commands, file writes, deletes or process launches are exposed.
 """
+import os
 from pathlib import Path
 import threading
 import time
@@ -16,7 +17,7 @@ class WindowsActions:
         self.audit = []
 
     def propose(self, operation, target):
-        if operation not in ("list_directory", "file_info"):
+        if operation not in ("list_directory", "file_info", "open_explorer"):
             raise ValueError("Operation is not supported")
         path = str(Path(target).expanduser().resolve(strict=False))
         return self.gate.propose(operation, path, f"{operation}: {path}")
@@ -36,6 +37,13 @@ class WindowsActions:
                 info = entry.stat()
                 result = {"name": entry.name, "size": info.st_size,
                           "is_file": entry.is_file(), "is_dir": entry.is_dir()}
+            elif operation == "open_explorer":
+                if os.name != "nt":
+                    raise OSError("Открытие Проводника доступно только в Windows")
+                if not Path(path).is_dir():
+                    raise NotADirectoryError(path)
+                os.startfile(path)
+                result = {"opened": path}
             else:
                 raise ValueError("Unsupported operation")
         except Exception as exc:
