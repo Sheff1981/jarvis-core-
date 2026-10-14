@@ -1,4 +1,4 @@
-"""Offline microphone transcription; muted audio is never sent to recognizer."""
+"""Offline microphone transcription with actual capture shutdown on mute."""
 import json
 from pathlib import Path
 
@@ -14,31 +14,35 @@ class VoiceInput:
         self.sample_rate = sample_rate
 
     def listen(self, on_text, stop_event, should_listen=None):
-        """Read local audio until stopped; gate recognition when muted or speaking."""
+        """Close input stream while gated; reset recognizer on each restart."""
         import sounddevice as sd
         from vosk import Model, KaldiRecognizer
 
         model = Model(self.model_path)
-        recognizer = KaldiRecognizer(model, self.sample_rate)
-        was_blocked = False
-
-        def callback(indata, frames, time_info, status):
-            nonlocal recognizer, was_blocked
-            if stop_event.is_set():
-                raise sd.CallbackStop()
+        while not stop_event.is_set():
             if should_listen is not None and not should_listen():
-                was_blocked = True
-                return
-            if was_blocked:
-                # Flush recognition state so old partial speech cannot leak.
-                recognizer = KaldiRecognizer(model, self.sample_rate)
-                was_blocked = False
-            if recognizer.AcceptWaveform(bytes(indata)):
-                phrase = json.loads(recognizer.Result()).get("text", "").strip()
-                if phrase:
-                    on_text(phrase)
+                stop_event.wait(0.1)
+                continue
 
-        with sd.RawInputStream(samplerate=self.sample_rate, blocksize=8000,
-                               dtype="int16", channels=1, callback=callback):
-            while not stop_event.wait(0.2):
-                pass
+            recognizer = KaldiRecognizer(model, self.sample_rate)
+
+            def callback(indata, frames, time_info, status):
+                if stop_event.is_set() or (
+                    should_listen is not None and not should_listen()
+                ):
+                    raise sd.CallbackStop()
+                if recognizer.AcceptWaveform(bytes(indata)):
+                    phrase = json.loads(recognizer.Result()).get("text", "").strip()
+                    if phrase and not stop_event.is_set() and (
+                        should_listen is None or should_listen()
+                    ):
+                        on_text(phrase)
+
+            with sd.RawInputStream(
+                samplerate=self.sample_rate, blocksize=8000,
+                dtype="int16", channels=1, callback=callback
+            ) as stream:
+                while not stop_event.wait(0.1):
+                    if should_listen is not None and not should_listen():
+                        stream.stop()
+                        break
