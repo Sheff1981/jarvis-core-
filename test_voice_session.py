@@ -1,3 +1,4 @@
+import threading
 import unittest
 from jarvis.voice_session import VoiceSession
 
@@ -9,8 +10,8 @@ class FakeAssistant:
 
 class FakeMicrophone:
     def listen(self, on_text, stop_event):
-        on_text("привет")
         on_text("стоп")
+        stop_event.wait(1)
 
 
 class BrokenMicrophone:
@@ -18,12 +19,23 @@ class BrokenMicrophone:
         raise RuntimeError("Устройство недоступно")
 
 
+class EchoMicrophone:
+    def __init__(self):
+        self.emit = None
+        self.ready = threading.Event()
+
+    def listen(self, on_text, stop_event):
+        self.emit = on_text
+        self.ready.set()
+        on_text("привет")
+        stop_event.wait(1)
+
+
 class VoiceSessionTests(unittest.TestCase):
     def test_routes_voice_and_stops(self):
         events = []
         session = VoiceSession(FakeAssistant(), FakeMicrophone())
         session.run(lambda kind, value: events.append((kind, value)))
-        self.assertIn(("answer", "Понял."), events)
         self.assertIn(("answer", "Останавливаюсь."), events)
         self.assertTrue(session.stop_event.is_set())
 
@@ -32,6 +44,21 @@ class VoiceSessionTests(unittest.TestCase):
         session = VoiceSession(FakeAssistant(), BrokenMicrophone())
         session.run(lambda kind, value: events.append((kind, value)))
         self.assertIn(("error", "Устройство недоступно"), events)
+
+    def test_does_not_process_echo_during_spoken_answer(self):
+        microphone = EchoMicrophone()
+        seen = []
+        class Assistant:
+            def respond(self, phrase):
+                seen.append(phrase)
+                return "Останавливаюсь."
+        session = VoiceSession(Assistant(), microphone)
+        def event(kind, value):
+            if kind == "answer":
+                self.assertTrue(microphone.ready.is_set())
+                microphone.emit("это эхо динамиков")
+        session.run(event)
+        self.assertEqual(seen, ["привет"])
         self.assertTrue(session.stop_event.is_set())
 
 
