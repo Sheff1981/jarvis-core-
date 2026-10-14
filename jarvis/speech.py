@@ -1,7 +1,26 @@
-"""Optional offline speech output via Windows SAPI through pyttsx3.
+"""Opt-in offline speech output with a Russian Windows SAPI preference.
 
-Speech is disabled unless explicitly enabled by the application.
+No speech engine or audio device is opened until say() is called.
 """
+
+
+def _russian_voice(voice):
+    """Detect ru-RU pyttsx3/SAPI voices, including byte-encoded language tags."""
+    import re
+
+    values = [getattr(voice, "name", ""), getattr(voice, "id", "")]
+    values.extend(getattr(voice, "languages", None) or [])
+    for value in values:
+        if isinstance(value, bytes):
+            value = value.decode("utf-8", errors="ignore")
+        text = str(value).casefold()
+        if re.search(r"(?:^|[^a-z])ru(?:-|_|$)", text):
+            return True
+        if any(name in text for name in ("russian", "irina", "ирина")):
+            return True
+    return False
+
+
 class Speaker:
     def __init__(self, enabled=False, rate=175):
         self.enabled = enabled
@@ -14,8 +33,16 @@ class Speaker:
         if self._engine is None:
             try:
                 import pyttsx3
-                self._engine = pyttsx3.init()
-                self._engine.setProperty("rate", self.rate)
+                engine = pyttsx3.init()
+                engine.setProperty("rate", self.rate)
+                russian = next(
+                    (voice for voice in engine.getProperty("voices")
+                     if _russian_voice(voice)),
+                    None,
+                )
+                if russian is not None:
+                    engine.setProperty("voice", russian.id)
+                self._engine = engine
             except Exception as exc:
                 raise RuntimeError("Не удалось запустить локальный синтез речи.") from exc
         try:
