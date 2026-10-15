@@ -62,6 +62,22 @@ class LearningAuditTests(unittest.TestCase):
             audit.close()
             director.close()
 
+    def test_verified_practice_credits_once_and_persists(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = str(Path(folder) / "jarvis.db")
+            from jarvis.learning_director import LearningDirector
+            director = LearningDirector(path)
+            goal_id = director.add_goal("programming", "Python practice")
+            audit = LearningAudit(path)
+            self.assertFalse(audit.verify_practice(goal_id, "python-bool", "False")["credited"])
+            self.assertTrue(audit.verify_practice(goal_id, "python-bool", "True")["credited"])
+            audit.close()
+            audit = LearningAudit(path)
+            self.assertFalse(audit.verify_practice(goal_id, "python-bool", "True")["credited"])
+            self.assertEqual(director.next_goals()[0]["completed_sessions"], 1)
+            audit.close()
+            director.close()
+
     def test_invalid_outcomes_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
             audit = LearningAudit(str(Path(folder) / "jarvis.db"))
