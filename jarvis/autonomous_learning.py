@@ -64,6 +64,8 @@ class AutonomousLearningLoop:
                     result = agent.study(url, skill)
                     outcomes.append({"goal": goal["id"], "status": result.status,
                                      "url": result.url})
+                    if result.status != "pending_review":
+                        raise ValueError("Research did not return pending review")
                     audit.record(goal["id"], "pending_review", result.url)
                     # Unreviewed web pages must never count as learned sessions.
                 except (ValueError, RuntimeError, OSError) as exc:
