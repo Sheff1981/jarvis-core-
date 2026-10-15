@@ -4,7 +4,6 @@ import threading
 import webbrowser
 import time
 import urllib.request
-import os
 
 from jarvis.dashboard import serve
 from jarvis.wake import WakeDispatcher
