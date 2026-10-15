@@ -6,6 +6,7 @@ import webbrowser
 import time
 import urllib.request
 import socket
+import json
 
 from jarvis.dashboard import serve
 from jarvis.wake import WakeDispatcher
