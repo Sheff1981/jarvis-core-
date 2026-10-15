@@ -91,6 +91,28 @@ class LearningAuditTests(unittest.TestCase):
             audit.close()
             director.close()
 
+    def test_duplicate_review_allows_followup_transaction(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = str(Path(folder) / "jarvis.db")
+            from jarvis.academy import Academy
+            from jarvis.learning_director import LearningDirector
+            academy = Academy(path)
+            director = LearningDirector(path)
+            goal = director.add_goal("programming", "Docs")
+            url = "https://docs.python.org/3/"
+            academy.db.execute(
+                "INSERT INTO academy_sources(url,skill,title,excerpt,fetched_at,reviewed) VALUES(?,?,?,?,?,1)",
+                (url, "python", "Python", "Verified", "2026-10-15T00:00:00Z"))
+            academy.db.commit()
+            audit = LearningAudit(path)
+            audit.record(goal, "pending_review", url)
+            self.assertTrue(audit.confirm_review(goal, url))
+            self.assertFalse(audit.confirm_review(goal, url))
+            audit.record(goal, "pending_review", url)
+            audit.close()
+            director.close()
+            academy.close()
+
     def test_invalid_outcomes_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
             audit = LearningAudit(str(Path(folder) / "jarvis.db"))
