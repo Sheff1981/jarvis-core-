@@ -13,6 +13,7 @@ def search(db_path, query, limit=5):
             FROM learning_events WHERE kind='official_doc' AND status='collected'
             ORDER BY id DESC LIMIT 500""").fetchall()
     matches = []
+    seen_urls = set()
     for event_id, title, raw, recorded_at in rows:
         try:
             evidence = json.loads(raw)
@@ -21,6 +22,9 @@ def search(db_path, query, limit=5):
                 continue
             if not isinstance(excerpt, str) or not isinstance(url, str):
                 continue
+            if url in seen_urls:
+                continue
+            seen_urls.add(url)
             haystack = (title + " " + excerpt).casefold()
             score = sum(haystack.count(word) for word in words)
             if score:
