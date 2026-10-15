@@ -4,6 +4,7 @@ import hashlib
 from html.parser import HTMLParser
 import json
 import sqlite3
+from contextlib import closing
 import urllib.request
 
 from jarvis.learning import LearningJournal
@@ -101,7 +102,7 @@ def collect(db_path, fetch=fetch_page):
                 failures.append({"url": url, "reason": "no_main_excerpt"})
                 continue
             digest = hashlib.sha256(excerpt.encode("utf-8")).hexdigest()
-            with sqlite3.connect(db_path) as db:
+            with closing(sqlite3.connect(db_path)) as db, db:
                 found = any(json.loads(raw).get("sha256") == digest and
                             json.loads(raw).get("url") == url for (raw,) in db.execute(
                                 "SELECT evidence FROM learning_events WHERE kind='official_doc'"))
