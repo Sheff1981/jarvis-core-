@@ -52,6 +52,7 @@ def collect_evidence(db_path, fetch=None, limit=5):
             WHERE e.kind='rss' AND a.kind='source_audit' AND a.status='verified'
             ORDER BY e.id DESC LIMIT ?""", (limit,)).fetchall()
     saved = 0
+    failures = []
     for event_id, title, raw in rows:
         url = json.loads(raw).get("url", "")
         if not validate_source(url):
@@ -61,9 +62,11 @@ def collect_evidence(db_path, fetch=None, limit=5):
             if excerpt:
                 add_evidence(db_path, event_id, title, excerpt, url)
                 saved += 1
-        except (OSError, ValueError, UnicodeError):
-            continue
-    return {"evidence_candidates": saved}
+            else:
+                failures.append({"event_id": event_id, "reason": "no_suitable_excerpt"})
+        except (OSError, ValueError, UnicodeError) as exc:
+            failures.append({"event_id": event_id, "reason": type(exc).__name__, "detail": str(exc)[:160]})
+    return {"evidence_candidates": saved, "failures": failures}
 
 def main():
     p = argparse.ArgumentParser()
