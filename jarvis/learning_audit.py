@@ -90,11 +90,41 @@ class LearningAudit:
             self.db.execute(
                 "INSERT INTO learning_practice_results(goal_id,skill,passed,evidence,created_at) VALUES(?,?,?,?,?)",
                 (goal_id, skill, int(passed), evidence.strip(), datetime.now(timezone.utc).isoformat()))
-            if False:  # No trusted exercise runner is integrated yet.
-                self.db.execute(
-                    "UPDATE learning_goals SET status='active', completed_sessions=completed_sessions+1, last_studied=? WHERE id=?",
-                    (datetime.now(timezone.utc).isoformat(), goal_id))
             self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+
+    def verify_practice(self, goal_id, exercise, answer):
+        """Award at most one credit per approved exercise after local verification."""
+        from jarvis.practice_verifier import PracticeVerifier
+        skill = "python" if exercise.startswith("python-") else "web"
+        result = PracticeVerifier.verify(exercise, answer)
+        self.db.execute("BEGIN IMMEDIATE")
+        try:
+            goal = self.db.execute(
+                "SELECT status FROM learning_goals WHERE id=?", (goal_id,)).fetchone()
+            if goal is None or goal[0] == "paused":
+                raise ValueError("Unknown or paused learning goal")
+            self.db.execute("""CREATE TABLE IF NOT EXISTS learning_verified_exercises (
+                goal_id INTEGER NOT NULL, exercise TEXT NOT NULL,
+                evidence_sha256 TEXT NOT NULL, verified_at TEXT NOT NULL,
+                PRIMARY KEY(goal_id, exercise))""")
+            credited = False
+            if result["passed"]:
+                cursor = self.db.execute(
+                    "INSERT OR IGNORE INTO learning_verified_exercises(goal_id,exercise,evidence_sha256,verified_at) VALUES(?,?,?,?)",
+                    (goal_id, exercise, result["evidence_sha256"], datetime.now(timezone.utc).isoformat()))
+                credited = cursor.rowcount == 1
+                if credited:
+                    self.db.execute(
+                        "UPDATE learning_goals SET status='active',completed_sessions=completed_sessions+1,last_studied=? WHERE id=?",
+                        (datetime.now(timezone.utc).isoformat(), goal_id))
+            self.db.execute(
+                "INSERT INTO learning_practice_results(goal_id,skill,passed,evidence,created_at) VALUES(?,?,?,?,?)",
+                (goal_id, skill, int(result["passed"]), result["evidence_sha256"], datetime.now(timezone.utc).isoformat()))
+            self.db.commit()
+            return {"passed": result["passed"], "credited": credited}
         except Exception:
             self.db.rollback()
             raise
