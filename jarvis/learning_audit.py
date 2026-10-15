@@ -42,7 +42,24 @@ class LearningAudit:
             "SELECT 1 FROM learning_research_attempts WHERE goal_id=? AND source_url=? AND outcome='reviewed'",
             (goal_id, source_url)).fetchone():
             return False
-        self.record(goal_id, "reviewed", source_url)
+        self.db.execute("BEGIN")
+        try:
+            goal = self.db.execute(
+                "SELECT status FROM learning_goals WHERE id=?", (goal_id,)).fetchone()
+            if goal is None or goal[0] == "paused":
+                raise ValueError("Unknown or paused learning goal")
+            self.db.execute(
+                "INSERT INTO learning_research_attempts(goal_id,source_url,outcome,created_at) VALUES(?,?,?,?)",
+                (goal_id, source_url, "reviewed", datetime.now(timezone.utc).isoformat()))
+            updated = self.db.execute(
+                "UPDATE learning_goals SET status='active', completed_sessions=completed_sessions+1, last_studied=? WHERE id=? AND status!='paused'",
+                (datetime.now(timezone.utc).isoformat(), goal_id))
+            if updated.rowcount != 1:
+                raise ValueError("Goal could not be updated")
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
         return True
 
     def recent(self, limit=20):
