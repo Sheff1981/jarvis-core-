@@ -2,6 +2,7 @@
 import json
 import os
 import sqlite3
+from contextlib import closing
 import tempfile
 import unittest
 
@@ -39,7 +40,7 @@ class LearningTagsTests(unittest.TestCase):
                         "object": {"type": "commit", "sha": "c" * 40}}
             self.assertEqual(collect(path, fetch)["tags_collected"], 1)
             self.assertEqual(collect(path, fetch)["tags_collected"], 0)
-            with sqlite3.connect(path) as db:
+            with closing(sqlite3.connect(path)) as db:
                 rows = db.execute("SELECT status,evidence FROM learning_events WHERE kind='release_tag'").fetchall()
             self.assertEqual(len(rows), 1)
             self.assertEqual(rows[0][0], "collected")
