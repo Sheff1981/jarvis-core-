@@ -37,6 +37,29 @@ class VoiceLatencyTests(unittest.TestCase):
         self.assertGreaterEqual(session.last_timings["assistant_ms"], 0)
         self.assertTrue(any(kind == "answer" for kind, _ in received))
 
+    def test_sleep_command_clears_prior_timing(self):
+        assistant = Mock()
+        assistant.llm.last_metrics = None
+
+        class Input:
+            def listen(self, callback, stop_event, should_listen=None):
+                callback("спи")
+                stop_event.wait(0.3)
+
+        session = VoiceSession(assistant, Input(), require_wake=False)
+        session.last_timings = {"assistant_ms": 100, "llm_used": True}
+        events = []
+
+        def on_event(kind, value):
+            events.append((kind, value))
+            if kind == "answer":
+                session.request_stop()
+
+        session.run(on_event)
+        self.assertIsNone(session.last_timings)
+        assistant.respond.assert_not_called()
+        self.assertIn(("answer", "Перехожу в режим ожидания."), events)
+
     def test_voice_session_uses_monotonic_clock_for_wake(self):
         session = VoiceSession(Mock(), Mock(), require_wake=True, clock=lambda: 10)
         self.assertFalse(session.active)
