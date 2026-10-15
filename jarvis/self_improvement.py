@@ -18,7 +18,7 @@ class SelfImprovement:
         if not isinstance(relative_path, str) or not relative_path.endswith(".py"):
             raise ValueError("Only Python source files can be staged")
         rel = Path(relative_path)
-        if rel.is_absolute() or ".." in rel.parts or not rel.parts or rel.parts[0] not in self.allowed:
+        if rel.is_absolute() or ".." in rel.parts or not rel.parts or rel.parts[0] not in self.allowed or rel.as_posix() in PROTECTED:
             raise ValueError("Path outside approved source directories")
         target = (self.workspace / rel).resolve()
         if not target.is_relative_to(self.workspace) or not target.is_file() or target.is_symlink():
@@ -48,9 +48,13 @@ class SelfImprovement:
         return {"passed": result.returncode == 0,
                 "output": (result.stdout + result.stderr)[-8000:]}
 
-    def apply(self, staging, relative_path, *, validated=False):
-        if not validated:
-            raise PermissionError("Changes require successful validation")
+    def apply(self, staging, relative_path, *, owner_policy=None, owner_token=None, timeout=180):
+        if not isinstance(owner_policy, OwnerPolicy):
+            raise PermissionError("Owner policy is required")
+        owner_policy.check_change(relative_path, owner_token)
+        result = self.validate(staging, timeout=timeout)
+        if not result["passed"]:
+            raise PermissionError("Candidate failed tests")
         target = self._target(relative_path)
         candidate = Path(staging).resolve() / "project" / relative_path
         if not candidate.is_file() or candidate.is_symlink():
