@@ -53,6 +53,8 @@ def main():
                         help="Pause between spoken sentences in seconds")
     parser.add_argument("--ollama-keep-alive", type=int, default=0,
                         help="Keep CPU model loaded for 0-300 seconds (default: 0)")
+    parser.add_argument("--llm-history-turns", type=int, default=8,
+                        help="Conversation turns passed to local LLM (1-8, default: 8)")
     parser.add_argument("--cpu-only", action="store_true",
                         help="Run Ollama on CPU with a low-memory profile (no CUDA)")
     parser.add_argument("--diagnostics", action="store_true",
@@ -61,6 +63,8 @@ def main():
     args = parser.parse_args()
     if not 0 <= args.ollama_keep_alive <= 300:
         parser.error("--ollama-keep-alive must be between 0 and 300 seconds")
+    if not 1 <= args.llm_history_turns <= 8:
+        parser.error("--llm-history-turns must be between 1 and 8")
     if (args.speak or args.voice_preview) and args.tts == "piper" and (
         not args.piper_bin or not args.piper_voice
     ):
@@ -102,7 +106,8 @@ def main():
                 assistant = Assistant(
                     db_path=args.db, model=args.llm_model,
                     llm=LocalLLM(model=args.llm_model, timeout=120, cpu_only=True,
-                                 keep_alive_seconds=args.ollama_keep_alive),
+                                 keep_alive_seconds=args.ollama_keep_alive,
+                                 max_turns=args.llm_history_turns),
                 )
             else:
                 assistant = Assistant(db_path=args.db, model=args.llm_model)
