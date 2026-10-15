@@ -38,7 +38,7 @@ def startup_script(python_exe, entry_script, model_dir, db_path,
                    llm_model="qwen2.5:3b-instruct-q6_K", *,
                    piper_bin=None, piper_voice=None, piper_length_scale=1.15,
                    cpu_only=True, tray=True, diagnostics=True,
-                   ollama_keep_alive=0, llm_history_turns=8):
+                   ollama_keep_alive=0, llm_history_turns=8, llm_no_think=False):
     """Build a hidden, quoted user startup script for the current voice entry point."""
     paths = [Path(value).resolve() for value in
              (python_exe, entry_script, model_dir, db_path)]
@@ -58,6 +58,10 @@ def startup_script(python_exe, entry_script, model_dir, db_path,
         raise ValueError("Invalid Ollama keep-alive seconds")
     if (type(llm_history_turns) is not int or not 1 <= llm_history_turns <= 8):
         raise ValueError("Invalid LLM history turns")
+    if not isinstance(llm_no_think, bool):
+        raise ValueError("Invalid LLM thinking setting")
+    if llm_no_think and not cpu_only:
+        raise ValueError("Disabling thinking requires CPU mode")
 
     args = [
         "--model", _safe(vosk), "--db", _safe(db),
@@ -73,6 +77,8 @@ def startup_script(python_exe, entry_script, model_dir, db_path,
         args.extend(("--ollama-keep-alive", str(ollama_keep_alive)))
     if llm_history_turns != 8:
         args.extend(("--llm-history-turns", str(llm_history_turns)))
+    if llm_no_think:
+        args.append("--llm-no-think")
     if piper_bin is not None:
         piper = Path(piper_bin).resolve()
         voice = Path(piper_voice).resolve()
@@ -151,6 +157,7 @@ def main(argv=None):
     parser.add_argument("--piper-length-scale", type=float, default=1.15)
     parser.add_argument("--ollama-keep-alive", type=int, default=0)
     parser.add_argument("--llm-history-turns", type=int, default=8)
+    parser.add_argument("--llm-no-think", action="store_true")
     args = parser.parse_args(argv)
     if args.remove:
         print("JARVIS autostart removed:", uninstall())
@@ -163,6 +170,7 @@ def main(argv=None):
         piper_length_scale=args.piper_length_scale,
         ollama_keep_alive=args.ollama_keep_alive,
         llm_history_turns=args.llm_history_turns,
+        llm_no_think=args.llm_no_think,
     )
     print("JARVIS autostart installed:", install(script))
 
