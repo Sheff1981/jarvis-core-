@@ -1,5 +1,6 @@
 """Optional local Ollama conversation backend; bounded in-memory dialogue history."""
 import json
+import time
 from urllib.error import URLError, HTTPError
 from urllib.request import Request
 from jarvis.local_transport import open_local
@@ -35,6 +36,7 @@ class LocalLLM:
             raise TypeError("cpu_only must be a boolean")
         self.cpu_only = cpu_only
         self.history = []
+        self.last_metrics = None
         self.mode = 'work'
 
     def ask(self, prompt):
@@ -64,12 +66,15 @@ class LocalLLM:
             self.endpoint + "/api/chat", data=payload,
             headers={"Content-Type": "application/json"}, method="POST",
         )
+        started = time.perf_counter()
+        self.last_metrics = None
         try:
             with open_local(request, timeout=self.timeout) as response:
                 raw = response.read(1024 * 1024 + 1)
                 if len(raw) > 1024 * 1024:
                     raise RuntimeError("Локальная модель вернула слишком большой ответ.")
                 data = json.loads(raw)
+            elapsed_ms = round((time.perf_counter() - started) * 1000, 1)
         except (URLError, HTTPError, TimeoutError, OSError) as exc:
             raise RuntimeError("Локальная модель недоступна. Проверь Ollama и загрузку модели.") from exc
         except (ValueError, UnicodeError) as exc:
@@ -80,6 +85,16 @@ class LocalLLM:
             raise RuntimeError("Локальная модель вернула некорректный ответ.") from exc
         if not answer:
             raise RuntimeError("Локальная модель вернула пустой ответ.")
+        # Ollama reports nanoseconds; these are timings, not estimates.
+        self.last_metrics = {"wall_ms": elapsed_ms}
+        for key in ("total_duration", "load_duration", "prompt_eval_duration", "eval_duration"):
+            value = data.get(key)
+            if isinstance(value, (int, float)) and not isinstance(value, bool) and value >= 0:
+                self.last_metrics[key.replace("_duration", "_ms")] = round(value / 1_000_000, 1)
+        for key in ("prompt_eval_count", "eval_count"):
+            value = data.get(key)
+            if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+                self.last_metrics[key] = value
         # Commit only successful exchanges; failures do not pollute context.
         self.history.extend((
             {"role": "user", "content": prompt},
