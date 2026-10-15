@@ -76,7 +76,7 @@ class Assistant:
         if phrase.casefold() in ("стоп", "джарвис стоп", "джарвис, стоп", "отмена", "джарвис отмена"):
             self.action_dialogue.close()
             return "Ожидающее действие отменено."
-        if IDENTITY_QUESTION.fullmatch(phrase):
+        if IDENTITY_QUESTION.fullmatch(phrase) and self.action_dialogue.pending is None:
             return IDENTITY_ANSWER
         mode_reply = self.modes.switch(phrase)
         if mode_reply is not None:
