@@ -42,6 +42,18 @@ class LauncherTests(unittest.TestCase):
             self.assertTrue(open_when_ready("http://127.0.0.1:8765", threading.Event(), opener=opened.append))
         self.assertEqual(opened, ["http://127.0.0.1:8765"])
 
+    def test_second_instance_is_not_started(self):
+        import socket
+        sock = socket.socket()
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
+        try:
+            with patch("jarvis_launcher.serve") as server:
+                self.assertFalse(run(port=port))
+                server.assert_not_called()
+        finally:
+            sock.close()
+
     def test_cli_rejects_invalid_port(self):
         with self.assertRaises(ValueError):
             main(["--port", "22"])
