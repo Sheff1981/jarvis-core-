@@ -8,6 +8,7 @@ import time
 from jarvis.learning_director import LearningDirector
 from jarvis.academy import Academy, SOURCES
 from jarvis.research_agent import ResearchAgent
+from jarvis.learning_audit import LearningAudit
 
 
 CURRICULUM = {
@@ -42,6 +43,7 @@ class AutonomousLearningLoop:
             return {"status": "offline", "pages": 0}
         director = LearningDirector(self.db_path)
         academy = Academy(self.db_path)
+        audit = LearningAudit(self.db_path)
         try:
             goals = director.next_goals(limit=max_pages)
             if not goals:
@@ -54,6 +56,7 @@ class AutonomousLearningLoop:
                 mapping = CURRICULUM.get(goal["domain"])
                 if not mapping:
                     outcomes.append({"goal": goal["id"], "status": "no_approved_source"})
+                    audit.record(goal["id"], "no_approved_source")
                     continue
                 skill, url = mapping
                 attempted += 1
@@ -61,11 +64,14 @@ class AutonomousLearningLoop:
                     result = agent.study(url, skill)
                     outcomes.append({"goal": goal["id"], "status": result.status,
                                      "url": result.url})
+                    audit.record(goal["id"], "pending_review", result.url)
                     # Unreviewed web pages must never count as learned sessions.
                 except (ValueError, RuntimeError, OSError) as exc:
                     outcomes.append({"goal": goal["id"], "status": "error",
                                      "reason": type(exc).__name__})
+                    audit.record(goal["id"], "error", url)
             return {"status": "research_attempted", "pages": attempted, "results": outcomes}
         finally:
+            audit.close()
             academy.close()
             director.close()
