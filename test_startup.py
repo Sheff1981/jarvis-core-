@@ -95,6 +95,30 @@ class StartupTests(unittest.TestCase):
             install(self.script(), self.root)
         self.assertEqual(legacy.read_text("utf-8"), "foreign entry")
 
+    def test_cpu_performance_options_are_opt_in(self):
+        default = self.script()
+        self.assertNotIn("--ollama-keep-alive", default)
+        self.assertNotIn("--llm-history-turns", default)
+        tuned = startup_script(
+            self.python, self.entry, self.model, self.db,
+            piper_bin=self.piper, piper_voice=self.ruslan,
+            ollama_keep_alive=60, llm_history_turns=2,
+        )
+        self.assertIn('--ollama-keep-alive', tuned)
+        self.assertIn('"60"', tuned)
+        self.assertIn('--llm-history-turns', tuned)
+        self.assertIn('"2"', tuned)
+        for seconds in (-1, 301, True, "60"):
+            with self.subTest(seconds=seconds):
+                with self.assertRaises(ValueError):
+                    startup_script(self.python, self.entry, self.model, self.db,
+                                   ollama_keep_alive=seconds)
+        for turns in (0, 9, False, "2"):
+            with self.subTest(turns=turns):
+                with self.assertRaises(ValueError):
+                    startup_script(self.python, self.entry, self.model, self.db,
+                                   llm_history_turns=turns)
+
     @patch("jarvis.startup.sys.platform", "win32")
     def test_memory_is_not_modified_by_install_or_remove(self):
         self.db.write_text("preserve database", encoding="utf-8")
