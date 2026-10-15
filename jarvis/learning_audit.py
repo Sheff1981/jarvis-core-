@@ -99,6 +99,16 @@ class LearningAudit:
             self.db.rollback()
             raise
 
+    def verified_practice(self, goal_id, skill, evidence, verifier):
+        """Grant progress only when a trusted local verifier succeeds."""
+        if not callable(verifier):
+            raise ValueError("Trusted verifier required")
+        result = verifier()
+        if type(result) is not bool:
+            raise ValueError("Verifier must return a boolean")
+        self.record_practice(goal_id, skill, result, evidence)
+        return result
+
     def recent(self, limit=20):
         if not isinstance(limit, int) or not 1 <= limit <= 100:
             raise ValueError("Invalid limit")
