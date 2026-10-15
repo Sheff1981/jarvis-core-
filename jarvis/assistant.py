@@ -24,6 +24,14 @@ MEMORY_SEARCH = re.compile(
 )
 
 
+PROJECT_LIST = re.compile(
+    r"^(?:(?:джарвис|слушай джарвис)[,\s]+)?"
+    r"(?:какие (?:у нас |мои )?проекты|покажи (?:мои |наши )?проекты|"
+    r"перечисли (?:мои |наши )?проекты|список (?:моих |наших )?проектов)"
+    r"[?.!\s]*$", re.IGNORECASE
+)
+
+
 class Assistant:
     def __init__(self, db_path="jarvis.db", model="qwen2.5:3b", llm=None):
         self.modes = ModeController()
@@ -55,6 +63,15 @@ class Assistant:
             if self.modes.mode == 'chat':
                 self.action_dialogue.close()
             return mode_reply
+        # SQLite is authoritative for project inventory, including chat mode.
+        if PROJECT_LIST.fullmatch(phrase):
+            projects = self.dialogue.projects.list()
+            if not projects:
+                return "Незавершённых проектов в моей локальной памяти пока нет."
+            return "Незавершённые проекты:\n" + "\n".join(
+                f"{i}. {p['name']}. Следующий шаг: {p['next_step'] or 'не определён'}."
+                for i, p in enumerate(projects, 1)
+            )
         if self.modes.mode == 'chat':
             try:
                 reply = self.llm.ask(phrase)
