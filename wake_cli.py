@@ -1,6 +1,7 @@
 """Opt-in offline wake listener for JARVIS."""
 import argparse
 import threading
+import queue
 
 from jarvis.voice import VoiceInput
 from jarvis.wake import WakeDispatcher
@@ -22,10 +23,25 @@ def main(argv=None):
         url="http://127.0.0.1:%d" % args.port,
         say_fn=speaker.say if speaker else None)
     stop = threading.Event()
+    phrases = queue.Queue(maxsize=8)
+    def enqueue(text):
+        try:
+            phrases.put_nowait(text)
+        except queue.Full:
+            pass
+    def dispatch():
+        while not stop.is_set():
+            try:
+                dispatcher.handle(phrases.get(timeout=0.2))
+            except queue.Empty:
+                continue
+            except Exception as exc:
+                print('JARVIS: ошибка обработки команды:', exc)
+    threading.Thread(target=dispatch, name='jarvis-wake-actions', daemon=True).start()
     print("Слушаю команду: Джарвис, привет. Ctrl+C — остановить.")
     print("Панель запусти отдельно: python dashboard_cli.py")
     try:
-        VoiceInput(args.vosk_model).listen(dispatcher.handle, stop)
+        VoiceInput(args.vosk_model).listen(enqueue, stop)
     except KeyboardInterrupt:
         stop.set()
 
