@@ -2,13 +2,14 @@
 import argparse
 import json
 import sqlite3
+from contextlib import closing
 
 def search(db_path, query, limit=5):
     words = [word.casefold() for word in query.split() if len(word) >= 3][:8]
     if not words:
         return []
     limit = max(1, min(int(limit), 20))
-    with sqlite3.connect(db_path) as db:
+    with closing(sqlite3.connect(db_path)) as db, db:
         rows = db.execute("""SELECT id,title,evidence,recorded_at
             FROM learning_events WHERE kind='official_doc' AND status='collected'
             ORDER BY id DESC LIMIT 500""").fetchall()
