@@ -4,6 +4,7 @@ import threading
 import webbrowser
 import time
 import urllib.request
+import os
 
 from jarvis.dashboard import serve
 from jarvis.wake import WakeDispatcher
@@ -43,10 +44,18 @@ def run(port=8765, db_path="jarvis.db", vosk_model=None, speak=False,
             say_fn = speaker.say
         wake = WakeDispatcher(url="http://127.0.0.1:%d" % port, say_fn=say_fn)
         def listen():
-            try:
-                voice.listen(wake.handle, stop)
-            except Exception as exc:
-                print("JARVIS: ошибка микрофона:", exc)
+            failures = 0
+            while not stop.is_set():
+                try:
+                    voice.listen(wake.handle, stop)
+                    if stop.is_set():
+                        break
+                    raise RuntimeError("Слушатель неожиданно завершился")
+                except Exception as exc:
+                    failures += 1
+                    print("JARVIS: ошибка микрофона (попытка %d): %s" % (failures, exc))
+                    if stop.wait(min(60, 2 ** min(failures, 6))):
+                        break
         listener = threading.Thread(target=listen, name="jarvis-wake", daemon=True)
         listener.start()
     url = "http://127.0.0.1:%d" % port
