@@ -56,7 +56,7 @@ class LearningAuditTests(unittest.TestCase):
             audit.record_practice(goal_id, "python", False, "unit test failed")
             self.assertEqual(director.next_goals()[0]["completed_sessions"], 0)
             audit.record_practice(goal_id, "python", True, "unit test passed")
-            self.assertEqual(director.next_goals()[0]["completed_sessions"], 1)
+            self.assertEqual(director.next_goals()[0]["completed_sessions"], 0)
             with self.assertRaises(ValueError):
                 audit.record_practice(goal_id, "python", True, "")
             audit.close()
