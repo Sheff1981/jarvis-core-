@@ -39,6 +39,14 @@ def make_handler(db_path, stream_fn=stream_project):
                 data = json.dumps({"service": "JARVIS", "mode": "local",
                                    "dashboard": "online", **snapshot()}).encode()
                 self._reply(200, data, "application/json; charset=utf-8")
+            elif path == "/api/academy":
+                academy = Academy(db_path)
+                try:
+                    progress = academy.progress()
+                finally:
+                    academy.close()
+                self._reply(200, json.dumps({"skills": progress}, ensure_ascii=False).encode("utf-8"),
+                            "application/json; charset=utf-8")
             elif path == "/api/growth":
                 assessment = GrowthPlanner().assess(snapshot(), {})
                 self._reply(200, json.dumps(assessment.as_dict(), ensure_ascii=False).encode("utf-8"),
