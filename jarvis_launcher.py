@@ -1,0 +1,64 @@
+"""Single-command JARVIS launcher; no Windows startup changes."""
+import argparse
+import threading
+import webbrowser
+
+from jarvis.dashboard import serve
+from jarvis.wake import WakeDispatcher
+
+
+def run(port=8765, db_path="jarvis.db", vosk_model=None, speak=False,
+        open_browser=False, voice_factory=None, speaker_factory=None):
+    if not 1024 <= port <= 65535:
+        raise ValueError("Invalid port")
+    stop = threading.Event()
+    listener = None
+    if vosk_model:
+        from jarvis.voice import VoiceInput
+        voice = voice_factory(vosk_model) if voice_factory else VoiceInput(vosk_model)
+        say_fn = None
+        if speak:
+            if speaker_factory:
+                speaker = speaker_factory()
+            else:
+                from jarvis.speech import Speaker
+                speaker = Speaker(enabled=True, backend="sapi")
+            say_fn = speaker.say
+        wake = WakeDispatcher(url="http://127.0.0.1:%d" % port, say_fn=say_fn)
+        def listen():
+            try:
+                voice.listen(wake.handle, stop)
+            except Exception as exc:
+                print("JARVIS: ошибка микрофона:", exc)
+        listener = threading.Thread(target=listen, name="jarvis-wake", daemon=True)
+        listener.start()
+    url = "http://127.0.0.1:%d" % port
+    print("JARVIS:", url)
+    print("Микрофон:", "активен" if vosk_model else "выключен")
+    if open_browser:
+        webbrowser.open(url)
+    try:
+        serve(port=port, db_path=db_path)
+    finally:
+        stop.set()
+        if listener:
+            listener.join(timeout=3)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="JARVIS dashboard and wake listener")
+    parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--db", default="jarvis.db")
+    parser.add_argument("--vosk-model", help="Enable local wake recognition using this model directory")
+    parser.add_argument("--speak", action="store_true", help="Speak greetings via Windows SAPI")
+    parser.add_argument("--open-browser", action="store_true", help="Open dashboard immediately")
+    args = parser.parse_args(argv)
+    try:
+        run(port=args.port, db_path=args.db, vosk_model=args.vosk_model,
+            speak=args.speak, open_browser=args.open_browser)
+    except KeyboardInterrupt:
+        print("JARVIS остановлен")
+
+
+if __name__ == "__main__":
+    main()
