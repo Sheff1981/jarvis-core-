@@ -11,13 +11,13 @@ const program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER
 if(!gl.getProgramParameter(program,gl.LINK_STATUS)){status.textContent='Ошибка WebGL';return;}
 gl.useProgram(program);const loc=gl.getAttribLocation(program,'p'),mat=gl.getUniformLocation(program,'m'),tint=gl.getUniformLocation(program,'tint'),pulse=gl.getUniformLocation(program,'pulse');
 const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,3,gl.FLOAT,false,0,0);
-let mode='idle',quality='balanced',visible=true;
+let mode='idle',quality='balanced',visible=true,mouthLevel=0;
 const states={idle:'ОЖИДАНИЕ',listening:'СЛУШАЕТ',thinking:'ДУМАЕТ',speaking:'ГОВОРИТ',error:'ОШИБКА'};
 function setMode(v){mode=states[v]?v:'idle';status.textContent=states[mode];}
-window.JarvisAvatar={setMode,setQuality(v){quality=['cinematic','balanced','eco'].includes(v)?v:'balanced';},getMode(){return mode;}};
+window.JarvisAvatar={setMode,setQuality(v){quality=['cinematic','balanced','eco'].includes(v)?v:'balanced';},getMode(){return mode;},setMouth(v){mouthLevel=Math.max(0,Math.min(1,Number(v)||0));}};
 function point(x,y,z,out){out.push(x,y,z);}
 function face(t){const data=[],rings=quality==='cinematic'?46:quality==='eco'?19:30,cols=quality==='cinematic'?76:quality==='eco'?32:52;
-const mouth=mode==='speaking'?(0.06+0.065*Math.abs(Math.sin(t*9))):0.012;
+const mouth=mode==='speaking'?(0.012+0.14*mouthLevel):0.012;
 const blink=Math.pow(Math.max(0,Math.cos(t*0.83)),36)*0.12;
 for(let i=0;i<rings;i++){const v=-Math.PI/2+Math.PI*i/(rings-1);for(let j=0;j<cols;j++){const u=-Math.PI+2*Math.PI*j/(cols-1);const x=0.77*Math.cos(v)*Math.sin(u),y=1.15*Math.sin(v),z=0.54*Math.cos(v)*Math.cos(u);
 let zz=z; if(Math.abs(x)<0.20&&y>-0.15&&y<0.40&&z>0)zz+=0.13*(1-Math.abs(x)/0.2);
