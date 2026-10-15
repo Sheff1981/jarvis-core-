@@ -23,6 +23,22 @@ class ExplorerActionTests(unittest.TestCase):
                 execute.assert_called_once()
                 self.assertEqual(execute.call_args.args[3], str(Path(folder).resolve()))
 
+    def test_vosk_drive_c_variant_requires_approval(self):
+        dialogue = ActionDialogue()
+        prompt = dialogue.respond("в открой диск це")
+        self.assertIn("Разрешаешь", prompt)
+        self.assertEqual(dialogue.pending.operation, "open_explorer")
+        self.assertIn("C:", dialogue.pending.target.upper())
+        self.assertIn("отменено", dialogue.respond("нет"))
+        self.assertIsNone(dialogue.pending)
+        dialogue.close()
+
+    def test_non_drive_filler_does_not_trigger_action(self):
+        dialogue = ActionDialogue()
+        self.assertIsNone(dialogue.respond("в открой банк"))
+        self.assertIsNone(dialogue.pending)
+        dialogue.close()
+
     def test_refusal_does_not_open_explorer(self):
         with tempfile.TemporaryDirectory() as folder:
             dialogue = ActionDialogue()
