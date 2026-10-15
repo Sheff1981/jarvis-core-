@@ -5,6 +5,7 @@ from jarvis.action_audit import ActionAudit
 from jarvis.action_dialogue import ActionDialogue
 from jarvis.windows_actions import WindowsActions
 from jarvis.conversation_store import ConversationStore
+from jarvis.code_scaffold import CodeDraftDialogue
 from jarvis.dialogue import Dialogue
 from jarvis.facts import FactStore
 from jarvis.local_llm import LocalLLM
@@ -44,6 +45,13 @@ IDENTITY_ANSWER = (
 )
 
 
+MODEL_QUESTION = re.compile(
+    r"^(?=.*(?:модель|нейросеть|квин|qwen))"
+    r"(?=.*(?:какая|какой|работает|запущен|используешь|имею в виду|сейчас))"
+    r".+$", re.IGNORECASE
+)
+
+
 PROJECT_LIST = re.compile(
     r"^(?:(?:джарвис|слушай джарвис)[,\s]+)?"
     r"(?:какие (?:у нас |мои )?проекты|покажи (?:мои |наши )?проекты|"
@@ -61,6 +69,7 @@ class Assistant:
         self.llm = llm if llm is not None else LocalLLM(model=model)
         self.conversations = ConversationStore(db_path)
         self.facts = FactStore(db_path)
+        self.code_dialogue = CodeDraftDialogue(db_path)
         if hasattr(self.llm, "history") and hasattr(self.llm, "max_turns"):
             self.llm.history = self.conversations.recent(self.llm.max_turns)
 
@@ -75,15 +84,24 @@ class Assistant:
             return "История разговора удалена из локальной памяти."
         if phrase.casefold() in ("стоп", "джарвис стоп", "джарвис, стоп", "отмена", "джарвис отмена"):
             self.action_dialogue.close()
+            self.code_dialogue.close()
             return "Ожидающее действие отменено."
         if IDENTITY_QUESTION.fullmatch(phrase) and self.action_dialogue.pending is None:
             return IDENTITY_ANSWER
+        if (self.action_dialogue.pending is None and not self.code_dialogue.pending
+                and MODEL_QUESTION.fullmatch(phrase)):
+            selected_model = getattr(self.llm, "model", None)
+            if not isinstance(selected_model, str) or not selected_model.strip():
+                return "Точная модель не указана в текущей конфигурации JARVIS."
+            mode = "на процессоре" if getattr(self.llm, "cpu_only", False) else "через Ollama"
+            return "Сейчас для ответов выбрана " + selected_model + ", " + mode + "."
         mode_reply = self.modes.switch(phrase)
         if mode_reply is not None:
             if hasattr(self.llm, 'mode'):
                 self.llm.mode = self.modes.mode
             if self.modes.mode == 'chat':
                 self.action_dialogue.close()
+                self.code_dialogue.close()
             return mode_reply
         # SQLite is authoritative for project inventory, including chat mode.
         if PROJECT_LIST.fullmatch(phrase):
@@ -104,7 +122,11 @@ class Assistant:
             return reply
         action_reply = self.action_dialogue.respond(phrase)
         if action_reply is not None:
+            self.code_dialogue.close()
             return action_reply
+        code_reply = self.code_dialogue.respond(phrase)
+        if code_reply is not None:
+            return code_reply
         match = FACT_SAVE.fullmatch(phrase)
         if match:
             project, fact = match.groups()
@@ -152,11 +174,13 @@ class Assistant:
         self.dialogue.session.clear()
         self.dialogue.pending_project_id = None
         self.action_dialogue.close()
+        self.code_dialogue.close()
         if hasattr(self.llm, "clear_history"):
             self.llm.clear_history()
 
     def close(self):
         self.action_dialogue.close()
+        self.code_dialogue.close()
         self.action_audit.close()
         self.facts.close()
         self.conversations.close()
