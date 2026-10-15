@@ -45,6 +45,18 @@ class AssistantTests(unittest.TestCase):
             finally:
                 assistant.close()
 
+    def test_identity_question_cannot_bypass_pending_action_decision(self):
+        with tempfile.TemporaryDirectory() as folder:
+            assistant = Assistant(str(Path(folder) / "memory.db"), llm=StubLLM())
+            try:
+                prompt = assistant.respond("открой папку " + folder)
+                self.assertIn("Разрешаешь", prompt)
+                refusal = assistant.respond("кто ты")
+                self.assertIn("отменено", refusal)
+                self.assertIsNone(assistant.action_dialogue.pending)
+            finally:
+                assistant.close()
+
     def test_general_question_uses_llm(self):
         with tempfile.TemporaryDirectory() as folder:
             llm = StubLLM()
