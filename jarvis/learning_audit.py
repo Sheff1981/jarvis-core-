@@ -13,6 +13,8 @@ class LearningAudit:
             outcome TEXT NOT NULL,
             created_at TEXT NOT NULL
         )""")
+        self.db.execute("""CREATE UNIQUE INDEX IF NOT EXISTS idx_learning_review_once
+            ON learning_research_attempts(goal_id,source_url) WHERE outcome='reviewed'""")
         self.db.commit()
 
     def record(self, goal_id, outcome, source_url=None):
@@ -42,7 +44,7 @@ class LearningAudit:
             "SELECT 1 FROM learning_research_attempts WHERE goal_id=? AND source_url=? AND outcome='reviewed'",
             (goal_id, source_url)).fetchone():
             return False
-        self.db.execute("BEGIN")
+        self.db.execute("BEGIN IMMEDIATE")
         try:
             goal = self.db.execute(
                 "SELECT status FROM learning_goals WHERE id=?", (goal_id,)).fetchone()
