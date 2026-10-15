@@ -19,7 +19,7 @@ SYSTEM_PROMPT = (
 
 class LocalLLM:
     def __init__(self, model="qwen2.5:3b", endpoint="http://127.0.0.1:11434",
-                 timeout=45, max_turns=8, cpu_only=False):
+                 timeout=45, max_turns=8, cpu_only=False, keep_alive_seconds=0):
         if endpoint not in ("http://127.0.0.1:11434", "http://localhost:11434"):
             raise ValueError("Only the local Ollama endpoint is allowed")
         if not isinstance(max_turns, int) or max_turns < 1:
@@ -35,6 +35,9 @@ class LocalLLM:
         if not isinstance(cpu_only, bool):
             raise TypeError("cpu_only must be a boolean")
         self.cpu_only = cpu_only
+        if not isinstance(keep_alive_seconds, int) or isinstance(keep_alive_seconds, bool) or not 0 <= keep_alive_seconds <= 300:
+            raise ValueError("keep_alive_seconds must be an integer between 0 and 300")
+        self.keep_alive_seconds = keep_alive_seconds
         self.history = []
         self.last_metrics = None
         self.mode = 'work'
@@ -60,7 +63,7 @@ class LocalLLM:
                 "num_gpu": 0, "num_ctx": 1024,
                 "num_predict": 96, "num_thread": 4,
             }
-            payload_data["keep_alive"] = 0
+            payload_data["keep_alive"] = self.keep_alive_seconds
         payload = json.dumps(payload_data).encode("utf-8")
         request = Request(
             self.endpoint + "/api/chat", data=payload,
