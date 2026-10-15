@@ -1,6 +1,7 @@
 """Persistent, auditable learning event journal. Standard library only."""
 import json
 import sqlite3
+from contextlib import contextmanager, closing
 from datetime import datetime, timezone
 
 
@@ -17,8 +18,10 @@ class LearningJournal:
                 evidence TEXT NOT NULL
             )""")
 
+    @contextmanager
     def _connect(self):
-        return sqlite3.connect(self.path, timeout=10)
+        with closing(sqlite3.connect(self.path, timeout=10)) as db, db:
+            yield db
 
     def record(self, kind, title, status, evidence=None):
         if status not in {"collected", "verified", "failed"}:
