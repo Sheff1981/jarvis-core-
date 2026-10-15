@@ -51,10 +51,14 @@ def main():
                         help="Piper phoneme duration: 1.15 speaks more deliberately")
     parser.add_argument("--piper-sentence-silence", type=float, default=0.0,
                         help="Pause between spoken sentences in seconds")
+    parser.add_argument("--ollama-keep-alive", type=int, default=0,
+                        help="Keep CPU model loaded for 0-300 seconds (default: 0)")
     parser.add_argument("--cpu-only", action="store_true",
                         help="Run Ollama on CPU with a low-memory profile (no CUDA)")
     parser.add_argument("--tray", action="store_true", help="Show a system tray with mute and exit")
     args = parser.parse_args()
+    if not 0 <= args.ollama_keep_alive <= 300:
+        parser.error("--ollama-keep-alive must be between 0 and 300 seconds")
     if (args.speak or args.voice_preview) and args.tts == "piper" and (
         not args.piper_bin or not args.piper_voice
     ):
@@ -95,7 +99,8 @@ def main():
             if args.cpu_only:
                 assistant = Assistant(
                     db_path=args.db, model=args.llm_model,
-                    llm=LocalLLM(model=args.llm_model, timeout=120, cpu_only=True),
+                    llm=LocalLLM(model=args.llm_model, timeout=120, cpu_only=True,
+                                 keep_alive_seconds=args.ollama_keep_alive),
                 )
             else:
                 assistant = Assistant(db_path=args.db, model=args.llm_model)
