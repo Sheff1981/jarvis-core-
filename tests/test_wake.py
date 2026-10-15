@@ -23,6 +23,18 @@ class WakeTests(unittest.TestCase):
         self.assertTrue(wake.handle("Джарвис"))
         self.assertEqual(len(opened), 2)
 
+    def test_greetings_do_not_repeat_consecutively(self):
+        spoken = []
+        now = [10.0]
+        wake = WakeDispatcher(open_fn=lambda _: None, say_fn=spoken.append,
+                              choice_fn=lambda choices: choices[0],
+                              clock=lambda: now[0], cooldown=1)
+        wake.handle('джарвис')
+        now[0] += 2
+        wake.handle('джарвис')
+        self.assertEqual(len(spoken), 2)
+        self.assertNotEqual(spoken[0], spoken[1])
+
     def test_broken_speaker_does_not_kill_listener(self):
         def broken(_):
             raise RuntimeError("Audio device unavailable")
