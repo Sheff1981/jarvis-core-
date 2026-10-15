@@ -39,6 +39,10 @@ class LearningAuditTests(unittest.TestCase):
             self.assertEqual([r["outcome"] for r in audit.recent()].count("reviewed"), 1)
             self.assertEqual(director.next_goals()[0]["completed_sessions"], 1)
             audit.close()
+            audit = LearningAudit(path)
+            self.assertFalse(audit.confirm_review(goal_id, url))
+            self.assertEqual(director.next_goals()[0]["completed_sessions"], 1)
+            audit.close()
             director.close()
             academy.close()
 
