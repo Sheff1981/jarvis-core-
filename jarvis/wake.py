@@ -39,7 +39,13 @@ class WakeDispatcher:
             if now - self._last < self.cooldown:
                 return False
             self._last = now
-        self.open_fn(self.url)
+        try:
+            self.open_fn(self.url)
+        except Exception as exc:
+            print("JARVIS: не удалось открыть браузер:", exc)
         if self.say_fn is not None:
-            self.say_fn(self.choice_fn(GREETINGS))
+            try:
+                self.say_fn(self.choice_fn(GREETINGS))
+            except Exception as exc:
+                print("JARVIS: голосовое приветствие недоступно:", exc)
         return True
