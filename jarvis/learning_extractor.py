@@ -16,16 +16,27 @@ class TextExtractor(HTMLParser):
         super().__init__(convert_charrefs=True)
         self.parts = []
         self.ignored = 0
+        self.release_depth = 0
+        self.depth = 0
+        self.found_release = False
     def handle_starttag(self, tag, attrs):
+        self.depth += 1
+        attributes = dict(attrs)
+        if attributes.get("data-test-selector") == "body-content" or "markdown-body" in attributes.get("class", "").split():
+            self.release_depth = self.depth
+            self.found_release = True
         if tag in ("script", "style", "nav", "footer", "header"):
             self.ignored += 1
-        if tag in ("p", "li", "h1", "h2", "h3"):
+        if self.release_depth and tag in ("p", "li", "h1", "h2", "h3"):
             self.parts.append("\n")
     def handle_endtag(self, tag):
         if tag in ("script", "style", "nav", "footer", "header") and self.ignored:
             self.ignored -= 1
+        if self.release_depth == self.depth:
+            self.release_depth = 0
+        self.depth = max(0, self.depth - 1)
     def handle_data(self, data):
-        if not self.ignored:
+        if self.release_depth and not self.ignored:
             self.parts.append(data)
 
 def extract_excerpt(data):
@@ -33,6 +44,8 @@ def extract_excerpt(data):
         raise ValueError("HTML too large")
     parser = TextExtractor()
     parser.feed(data.decode("utf-8", errors="replace"))
+    if not parser.found_release:
+        return ""
     lines = [" ".join(line.split()) for line in "".join(parser.parts).splitlines()]
     blocks = [line for line in lines if line and len(line) >= 12]
     for index, line in enumerate(blocks):
