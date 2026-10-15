@@ -5,6 +5,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from jarvis.system_metrics import snapshot
 from jarvis.projects import Projects
 from jarvis.ollama_stream import stream_project
 from jarvis.ollama_dialogue import OllamaError
@@ -31,9 +32,11 @@ def make_handler(db_path, stream_fn=stream_project):
                 self._reply(200, PAGE.read_bytes(), "text/html; charset=utf-8")
             elif path == "/api/session":
                 self._reply(200, json.dumps({"token": token}).encode(), "application/json")
+            elif path == "/avatar3d.js":
+                self._reply(200, PAGE.with_name("avatar3d.js").read_bytes(), "text/javascript; charset=utf-8")
             elif path == "/api/status":
                 data = json.dumps({"service": "JARVIS", "mode": "local",
-                                   "dashboard": "online", "ollama": "not_checked"}).encode()
+                                   "dashboard": "online", **snapshot()}).encode()
                 self._reply(200, data, "application/json; charset=utf-8")
             elif path == "/api/projects":
                 db = Projects(db_path)
