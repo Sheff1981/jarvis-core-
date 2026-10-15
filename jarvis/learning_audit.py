@@ -53,8 +53,9 @@ class LearningAudit:
             if self.db.execute(
                 "SELECT 1 FROM learning_research_attempts WHERE goal_id=? AND source_url=? AND outcome='reviewed'",
                 (goal_id, source_url)).fetchone():
+                self.db.commit()
                 return False
-                goal = self.db.execute(
+            goal = self.db.execute(
                 "SELECT status FROM learning_goals WHERE id=?", (goal_id,)).fetchone()
             if goal is None or goal[0] == "paused":
                 raise ValueError("Unknown or paused learning goal")
