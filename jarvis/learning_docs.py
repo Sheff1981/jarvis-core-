@@ -16,12 +16,18 @@ PAGES = (
 MAX_BYTES = 512 * 1024
 
 class MainText(HTMLParser):
+    """Extract complete paragraphs from the main content, excluding navigation."""
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.depth = 0
         self.main_depth = None
         self.ignore_depth = None
-        self.parts = []
+        self.paragraph_depth = None
+        self.paragraph = []
+        self.paragraphs = []
+        self.heading_depth = None
+        self.heading = []
+        self.current_heading = ""
 
     def handle_starttag(self, tag, attrs):
         self.depth += 1
@@ -29,12 +35,28 @@ class MainText(HTMLParser):
         if self.main_depth is None and (tag == "main" or
             (tag == "div" and attributes.get("role") == "main")):
             self.main_depth = self.depth
-        if self.main_depth is not None and self.ignore_depth is None and tag in ("script", "style", "nav"):
+        if self.main_depth is None:
+            return
+        if self.ignore_depth is None and tag in ("script", "style", "nav", "aside"):
             self.ignore_depth = self.depth
-        if self.main_depth is not None and self.ignore_depth is None and tag in ("p", "h1", "h2", "h3", "li"):
-            self.parts.append("\n")
+        if self.ignore_depth is not None:
+            return
+        if self.heading_depth is None and tag in ("h1", "h2", "h3"):
+            self.heading_depth = self.depth
+            self.heading = []
+        if self.paragraph_depth is None and tag == "p":
+            self.paragraph_depth = self.depth
+            self.paragraph = []
 
     def handle_endtag(self, tag):
+        if self.paragraph_depth == self.depth:
+            paragraph = " ".join("".join(self.paragraph).split())
+            if len(paragraph) >= 100 and paragraph[-1:] in (".", "!", "?", ":"):
+                self.paragraphs.append((self.current_heading, paragraph))
+            self.paragraph_depth = None
+        if self.heading_depth == self.depth:
+            self.current_heading = " ".join("".join(self.heading).split())[:160]
+            self.heading_depth = None
         if self.ignore_depth == self.depth:
             self.ignore_depth = None
         if self.main_depth == self.depth:
@@ -42,16 +64,23 @@ class MainText(HTMLParser):
         self.depth = max(0, self.depth - 1)
 
     def handle_data(self, data):
-        if self.main_depth is not None and self.ignore_depth is None:
-            self.parts.append(data)
+        if self.main_depth is None or self.ignore_depth is not None:
+            return
+        if self.paragraph_depth is not None:
+            self.paragraph.append(data)
+        if self.heading_depth is not None:
+            self.heading.append(data)
 
 def extract(data):
     if len(data) > MAX_BYTES:
         raise ValueError("Document too large")
     parser = MainText()
     parser.feed(data.decode("utf-8", errors="replace"))
-    lines = [" ".join(line.split()) for line in "".join(parser.parts).splitlines()]
-    return next((line[:1500] for line in lines if len(line) >= 100), "")
+    for heading, paragraph in parser.paragraphs:
+        prefix = (heading + ": ") if heading else ""
+        if len(prefix) + len(paragraph) <= 1500:
+            return prefix + paragraph
+    return ""
 
 def fetch_page(url):
     if url not in PAGES:
