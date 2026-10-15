@@ -123,15 +123,17 @@ def main():
                     print("JARVIS:", value, flush=True)
                     try:
                         tts_started = time.perf_counter()
-                        speaker.say(value)
-                        tts_ms = round((time.perf_counter() - tts_started) * 1000, 1)
+                        spoken = speaker.say(value)
+                        tts_ms = round((time.perf_counter() - tts_started) * 1000, 1) if spoken else None
                         if args.diagnostics:
                             timings = session.last_timings or {}
                             print("JARVIS timing: assistant={}ms tts_total={}ms".format(
                                 timings.get("assistant_ms", "n/a"), tts_ms), flush=True)
-                            metrics = getattr(assistant.llm, "last_metrics", None)
-                            if metrics:
-                                print("JARVIS Ollama metrics:", metrics, flush=True)
+                            # Avoid presenting metrics from a previous local command as current.
+                            if timings.get("llm_used"):
+                                metrics = getattr(assistant.llm, "last_metrics", None)
+                                if metrics:
+                                    print("JARVIS Ollama metrics:", metrics, flush=True)
                     except RuntimeError as exc:
                         print("JARVIS: Ошибка голоса:", exc, flush=True)
                 elif kind == "error":
