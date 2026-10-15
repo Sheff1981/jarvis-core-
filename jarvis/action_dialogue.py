@@ -16,6 +16,18 @@ class ActionDialogue:
 
     def respond(self, phrase):
         phrase = phrase.strip()
+        # Vosk sometimes prepends a filler "в" and hears the spoken
+        # drive letter C as "це". Normalize only an explicitly requested
+        # drive-open phrase; approval is still mandatory.
+        voice_drive = re.fullmatch(
+            r"(?:в\\s+)?(?:открой|открыть|покажи)\\s+(?:мне\\s+)?"
+            r"диск\\s+(це|си|с|c|дэ|де|д|d)\\s*",
+            phrase, re.IGNORECASE
+        )
+        if voice_drive:
+            spoken = voice_drive.group(1).casefold()
+            letter = "C" if spoken in ("це", "си", "с", "c") else "D"
+            phrase = "открой диск " + letter
         if self.pending is not None:
             request = self.pending
             self.pending = None
