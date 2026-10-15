@@ -22,11 +22,14 @@ class LearningAuditTests(unittest.TestCase):
             path = str(Path(folder) / "jarvis.db")
             from jarvis.academy import Academy
             academy = Academy(path)
+            from jarvis.learning_director import LearningDirector
+            director = LearningDirector(path)
+            goal_id = director.add_goal("programming", "Python documentation")
             audit = LearningAudit(path)
             url = "https://docs.python.org/3/"
-            audit.record(1, "pending_review", url)
+            audit.record(goal_id, "pending_review", url)
             with self.assertRaises(ValueError):
-                audit.confirm_review(1, url)
+                audit.confirm_review(goal_id, url)
             academy.db.execute(
                 "INSERT INTO academy_sources(url,skill,title,excerpt,fetched_at,reviewed) VALUES(?,?,?,?,?,1)",
                 (url, "python", "Python", "Verified", "2026-10-15T00:00:00Z"))
@@ -34,7 +37,9 @@ class LearningAuditTests(unittest.TestCase):
             self.assertTrue(audit.confirm_review(1, url))
             self.assertFalse(audit.confirm_review(1, url))
             self.assertEqual([r["outcome"] for r in audit.recent()].count("reviewed"), 1)
+            self.assertEqual(director.next_goals()[0]["completed_sessions"], 1)
             audit.close()
+            director.close()
             academy.close()
 
     def test_invalid_outcomes_rejected(self):
