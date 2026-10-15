@@ -4,6 +4,7 @@ from html.parser import HTMLParser
 import json
 import sqlite3
 import urllib.request
+from urllib.parse import quote
 from urllib.parse import urlsplit
 
 from jarvis.learning_evidence import add_evidence
@@ -60,12 +61,24 @@ def collect_evidence(db_path, fetch=None, limit=5):
     """Capture source text as a pending excerpt, not an inferred factual claim."""
     if fetch is None:
         def fetch(url):
-            req = urllib.request.Request(url, headers={"User-Agent": "JARVIS-Learning/0.1"})
-            opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
-            with opener.open(req, timeout=12) as response:
-                if not validate_source(response.geturl()):
-                    raise ValueError("Redirect outside trusted source")
-                return response.read(MAX_HTML + 1)
+            tag = url.rsplit("/tag/", 1)[-1]
+            if "/tag/" not in url or not tag or "/" in tag:
+                raise ValueError("Expected GitHub release tag")
+            api_url = "https://api.github.com/repos/python/cpython/releases/tags/" + quote(tag, safe="")
+            req = urllib.request.Request(api_url, headers={
+                "User-Agent": "JARVIS-Learning/0.1",
+                "Accept": "application/vnd.github+json",
+            })
+            with urllib.request.urlopen(req, timeout=12) as response:
+                if response.geturl() != api_url:
+                    raise ValueError("Unexpected API redirect")
+                data = response.read(65537)
+            if len(data) > 65536:
+                raise ValueError("API response too large")
+            payload = json.loads(data)
+            if payload.get("tag_name") != tag:
+                raise ValueError("Mismatched release tag")
+            return payload.get("body") or ""
     with sqlite3.connect(db_path) as db:
         rows = db.execute("""SELECT e.id,e.title,e.evidence FROM learning_events e
             JOIN learning_events a ON json_extract(a.evidence,'$.source_event_id')=e.id
@@ -78,13 +91,19 @@ def collect_evidence(db_path, fetch=None, limit=5):
         if not validate_source(url):
             continue
         try:
-            excerpt = extract_excerpt(fetch(url))
+            body = fetch(url)
+            if isinstance(body, bytes):
+                excerpt = extract_excerpt(body)
+            else:
+                excerpt = " ".join(body.split())[:1500] if isinstance(body, str) else ""
+                if len(excerpt) < 40:
+                    excerpt = ""
             if excerpt:
                 add_evidence(db_path, event_id, title, excerpt, url)
                 saved += 1
             else:
                 failures.append({"event_id": event_id, "reason": "no_suitable_excerpt"})
-        except (OSError, ValueError, UnicodeError) as exc:
+        except (OSError, ValueError, UnicodeError, TypeError, KeyError) as exc:
             failures.append({"event_id": event_id, "reason": type(exc).__name__, "detail": str(exc)[:160]})
     return {"evidence_candidates": saved, "failures": failures}
 
