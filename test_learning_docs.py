@@ -13,6 +13,27 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("Useful official", result)
         self.assertNotIn("BAD NAV", result)
 
+    def test_complete_paragraph_with_heading(self):
+        html = (b"<main><h2>Database overview</h2><p>"
+                + b"SQLite provides a reliable embedded database for local application storage. " * 2
+                + b"</p></main>")
+        result = extract(html)
+        self.assertTrue(result.startswith("Database overview: SQLite"))
+        self.assertTrue(result.endswith("storage."))
+
+    def test_rejects_truncated_paragraph(self):
+        html = b"<main><p>" + b"Unfinished technical text " * 8
+        self.assertEqual(extract(html), "")
+
+    def test_ignores_navigation_inside_main(self):
+        html = (b"<main><nav><p>" + b"Navigation junk. " * 12 +
+                b"</p></nav><h2>Real content</h2><p>" +
+                b"Documentation explains the actual behavior of the Python standard library. " * 2 +
+                b"</p></main>")
+        result = extract(html)
+        self.assertIn("Real content:", result)
+        self.assertNotIn("Navigation junk", result)
+
     def test_no_main_is_empty(self):
         self.assertEqual(extract(b"<html><p>Navigation only</p></html>"), "")
 
