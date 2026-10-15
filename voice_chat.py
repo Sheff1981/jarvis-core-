@@ -55,6 +55,8 @@ def main():
                         help="Keep CPU model loaded for 0-300 seconds (default: 0)")
     parser.add_argument("--llm-history-turns", type=int, default=8,
                         help="Conversation turns passed to local LLM (1-8, default: 8)")
+    parser.add_argument("--llm-no-think", action="store_true",
+                        help="Disable Qwen3 reasoning in Ollama for quicker voice replies")
     parser.add_argument("--cpu-only", action="store_true",
                         help="Run Ollama on CPU with a low-memory profile (no CUDA)")
     parser.add_argument("--diagnostics", action="store_true",
@@ -65,6 +67,8 @@ def main():
         parser.error("--ollama-keep-alive must be between 0 and 300 seconds")
     if not 1 <= args.llm_history_turns <= 8:
         parser.error("--llm-history-turns must be between 1 and 8")
+    if args.llm_no_think and not args.cpu_only:
+        parser.error("--llm-no-think requires --cpu-only")
     if (args.speak or args.voice_preview) and args.tts == "piper" and (
         not args.piper_bin or not args.piper_voice
     ):
@@ -107,7 +111,8 @@ def main():
                     db_path=args.db, model=args.llm_model,
                     llm=LocalLLM(model=args.llm_model, timeout=120, cpu_only=True,
                                  keep_alive_seconds=args.ollama_keep_alive,
-                                 max_turns=args.llm_history_turns),
+                                 max_turns=args.llm_history_turns,
+                                 think=False if args.llm_no_think else None),
                 )
             else:
                 assistant = Assistant(db_path=args.db, model=args.llm_model)
