@@ -4,23 +4,26 @@ from urllib import request, error
 
 from jarvis.dialogue_context import build_project_context
 from jarvis.dialogue_memory import DialogueMemory
+from jarvis.inference_profile import InferenceProfile
 
 
 class OllamaError(RuntimeError):
     pass
 
 
-def ask_project(project_id, question, *, db_path="jarvis.db", model="qwen2.5:3b",
+def ask_project(project_id, question, *, db_path="jarvis.db", model=None,
                 endpoint="http://127.0.0.1:11434/api/chat", timeout=120,
-                transport=None):
+                transport=None, profile=None):
     """Ask local Ollama; persist both turns only after a valid response."""
+    profile = profile or InferenceProfile()
+    model = profile.model if model is None else model
     if not isinstance(question, str) or not question.strip():
         raise ValueError("Question must not be empty")
     if not isinstance(model, str) or not model.strip():
         raise ValueError("Model must not be empty")
     if endpoint != "http://127.0.0.1:11434/api/chat":
         raise ValueError("Only local Ollama endpoint is supported")
-    context = build_project_context(project_id, db_path)
+    context = build_project_context(project_id, db_path, limit=profile.history_limit)
     system = (
         "Ты JARVIS, локальный помощник. Отвечай по-русски. "
         "Не утверждай, что выполнил действия, если не выполнял их. "
@@ -30,7 +33,8 @@ def ask_project(project_id, question, *, db_path="jarvis.db", model="qwen2.5:3b"
     messages = [{"role": "system", "content": system}]
     messages.extend(context["messages"])
     messages.append({"role": "user", "content": question.strip()})
-    payload = json.dumps({"model": model, "messages": messages, "stream": False},
+    payload = json.dumps({"model": model, "messages": messages, "stream": False,
+                          "options": profile.ollama_options()},
                          ensure_ascii=False).encode("utf-8")
     req = request.Request(endpoint, data=payload,
                           headers={"Content-Type": "application/json"}, method="POST")
