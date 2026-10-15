@@ -79,7 +79,7 @@ class CodeScaffoldTests(unittest.TestCase):
             assistant.respond("создай телеграм бота")
             self.assertIn("отменено", assistant.respond("стоп"))
             # An unrelated approval must not create files.
-            self.assertNotIn("Созданы исходники", assistant.respond("разрешаю"))
+            self.assertFalse(assistant.code_dialogue.pending)
             self.assertFalse(self.target.exists())
         finally:
             assistant.close()
