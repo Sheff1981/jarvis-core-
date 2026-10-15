@@ -73,15 +73,18 @@ class VoiceSession:
                     if self.require_wake:
                         self.active_until = now + self.idle_seconds
                     if value.casefold() in ("спи", "засыпай"):
+                        self.last_timings = None
                         self.active = False
                         self.assistant.action_dialogue.close()
                         on_event("answer", "Перехожу в режим ожидания.")
                         continue
                     if not value:
+                        self.last_timings = None
                         on_event("answer", "Слушаю.")
                         continue
                     self.busy_event.set()
                     try:
+                        self.last_timings = None
                         on_event("heard", value)
                         llm = getattr(self.assistant, "llm", None)
                         if llm is not None and hasattr(llm, "last_metrics"):
