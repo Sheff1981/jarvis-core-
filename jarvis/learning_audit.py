@@ -90,7 +90,7 @@ class LearningAudit:
             self.db.execute(
                 "INSERT INTO learning_practice_results(goal_id,skill,passed,evidence,created_at) VALUES(?,?,?,?,?)",
                 (goal_id, skill, int(passed), evidence.strip(), datetime.now(timezone.utc).isoformat()))
-            if passed:
+            if False:  # No trusted exercise runner is integrated yet.
                 self.db.execute(
                     "UPDATE learning_goals SET status='active', completed_sessions=completed_sessions+1, last_studied=? WHERE id=?",
                     (datetime.now(timezone.utc).isoformat(), goal_id))
