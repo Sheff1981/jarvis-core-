@@ -21,7 +21,7 @@ SYSTEM_PROMPT = (
 
 class LocalLLM:
     def __init__(self, model="qwen2.5:3b", endpoint="http://127.0.0.1:11434",
-                 timeout=45, max_turns=8, cpu_only=False, keep_alive_seconds=0):
+                 timeout=45, max_turns=8, cpu_only=False, keep_alive_seconds=0, think=None):
         if endpoint not in ("http://127.0.0.1:11434", "http://localhost:11434"):
             raise ValueError("Only the local Ollama endpoint is allowed")
         if not isinstance(max_turns, int) or max_turns < 1:
@@ -40,6 +40,9 @@ class LocalLLM:
         if not isinstance(keep_alive_seconds, int) or isinstance(keep_alive_seconds, bool) or not 0 <= keep_alive_seconds <= 300:
             raise ValueError("keep_alive_seconds must be an integer between 0 and 300")
         self.keep_alive_seconds = keep_alive_seconds
+        if think is not None and not isinstance(think, bool):
+            raise TypeError("think must be True, False or None")
+        self.think = think
         self.history = []
         self.last_metrics = None
         self.mode = 'work'
@@ -60,6 +63,8 @@ class LocalLLM:
             "stream": False,
             "messages": messages,
         }
+        if self.think is not None:
+            payload_data["think"] = self.think
         if self.cpu_only:
             payload_data["options"] = {
                 "num_gpu": 0, "num_ctx": 1024,
