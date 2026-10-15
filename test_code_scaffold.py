@@ -61,6 +61,12 @@ class CodeScaffoldTests(unittest.TestCase):
         self.scaffold.close()
         self.assertIsNone(self.scaffold.respond("разрешаю"))
 
+    def test_permission_expires_before_creating_files(self):
+        self.scaffold.respond("создай бот в телеграм")
+        self.scaffold.pending_until = self.scaffold.clock() - 1
+        self.assertIn("истёк", self.scaffold.respond("разрешаю"))
+        self.assertFalse(self.target.exists())
+
     def test_assistant_routes_model_and_scaffold_without_llm(self):
         assistant = Assistant(str(self.db), llm=NeverLLM())
         try:
