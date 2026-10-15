@@ -39,22 +39,22 @@ class LearningAudit:
         """Record a review only if Academy confirms the source is reviewed."""
         if not isinstance(goal_id, int) or goal_id < 1 or not source_url:
             raise ValueError("Invalid review reference")
-        row = self.db.execute(
-            "SELECT reviewed FROM academy_sources WHERE url=?", (source_url,)).fetchone()
-        if row is None or row[0] != 1:
-            raise ValueError("Source is not reviewed")
-        exists = self.db.execute(
-            "SELECT 1 FROM learning_research_attempts WHERE goal_id=? AND source_url=? AND outcome='pending_review'",
-            (goal_id, source_url)).fetchone()
-        if exists is None:
-            raise ValueError("No matching research attempt")
-        if self.db.execute(
-            "SELECT 1 FROM learning_research_attempts WHERE goal_id=? AND source_url=? AND outcome='reviewed'",
-            (goal_id, source_url)).fetchone():
-            return False
         self.db.execute("BEGIN IMMEDIATE")
         try:
-            goal = self.db.execute(
+            row = self.db.execute(
+                "SELECT reviewed FROM academy_sources WHERE url=?", (source_url,)).fetchone()
+            if row is None or row[0] != 1:
+                raise ValueError("Source is not reviewed")
+            exists = self.db.execute(
+                "SELECT 1 FROM learning_research_attempts WHERE goal_id=? AND source_url=? AND outcome='pending_review'",
+                (goal_id, source_url)).fetchone()
+            if exists is None:
+                raise ValueError("No matching research attempt")
+            if self.db.execute(
+                "SELECT 1 FROM learning_research_attempts WHERE goal_id=? AND source_url=? AND outcome='reviewed'",
+                (goal_id, source_url)).fetchone():
+                return False
+                goal = self.db.execute(
                 "SELECT status FROM learning_goals WHERE id=?", (goal_id,)).fetchone()
             if goal is None or goal[0] == "paused":
                 raise ValueError("Unknown or paused learning goal")
