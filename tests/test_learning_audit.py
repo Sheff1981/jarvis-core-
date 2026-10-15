@@ -78,6 +78,19 @@ class LearningAuditTests(unittest.TestCase):
             audit.close()
             director.close()
 
+    def test_exercise_cannot_credit_wrong_domain(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = str(Path(folder) / "jarvis.db")
+            from jarvis.learning_director import LearningDirector
+            director = LearningDirector(path)
+            goal_id = director.add_goal("history", "History review")
+            audit = LearningAudit(path)
+            with self.assertRaises(ValueError):
+                audit.verify_practice(goal_id, "python-bool", "True")
+            self.assertEqual(director.next_goals()[0]["completed_sessions"], 0)
+            audit.close()
+            director.close()
+
     def test_invalid_outcomes_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
             audit = LearningAudit(str(Path(folder) / "jarvis.db"))
