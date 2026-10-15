@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 
 from jarvis.system_metrics import snapshot
 from jarvis.growth_planner import GrowthPlanner
+from jarvis.academy import Academy
 from jarvis.projects import Projects
 from jarvis.ollama_stream import stream_project
 from jarvis.ollama_dialogue import OllamaError
