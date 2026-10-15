@@ -2,6 +2,8 @@
 'use strict';
 const $=id=>document.getElementById(id);
 let token='',controller=null,voiceEnabled=false,recognition=null;
+const settings=(()=>{try{return JSON.parse(localStorage.getItem('jarvis.dashboard.settings')||'{}')}catch(e){return {}}})();
+function saveSettings(){try{localStorage.setItem('jarvis.dashboard.settings',JSON.stringify({quality:$('quality').value,voice:voiceEnabled,project:$('project').value}))}catch(e){}}
 const avatar=window.JarvisAvatar||{setMode() {},setQuality() {}};
 const formatGB=n=>n==null?'Недоступно':(n/1073741824).toFixed(1)+' ГБ';
 async function refresh(){
@@ -15,18 +17,34 @@ $('cpu').textContent=status.cpu_count==null?'Недоступно':status.cpu_co
 $('ram').textContent=status.ram_total_bytes==null?'Недоступно':formatGB(status.ram_total_bytes-status.ram_available_bytes)+' / '+formatGB(status.ram_total_bytes);
 const select=$('project'),selected=select.value;select.replaceChildren();$('projects').replaceChildren();
 for(const p of data.projects){const option=document.createElement('option');option.value=p.id;option.textContent=p.name;select.append(option);const li=document.createElement('li');li.textContent=p.name+' · '+p.status;$('projects').append(li);}
-if(data.projects.some(p=>p.id===selected))select.value=selected;
+if(data.projects.some(p=>p.id===selected))select.value=selected;else if(data.projects.some(p=>p.id===settings.project))select.value=settings.project;
 if(!data.projects.length){const li=document.createElement('li');li.textContent='Создайте проект через projects_cli.py';$('projects').append(li);}
 }catch(e){$('connection').textContent='Сервер недоступен';$('core').textContent='Нет связи';}
 }
 async function session(){try{const r=await fetch('/api/session');if(r.ok)token=(await r.json()).token;}catch(e){token='';}}
-function say(text){if(!voiceEnabled||!('speechSynthesis' in window))return;
-const utterance=new SpeechSynthesisUtterance(text);utterance.lang='ru-RU';utterance.rate=1;
-const voices=speechSynthesis.getVoices(),ru=voices.find(v=>v.lang.toLowerCase().startsWith('ru'));if(ru){utterance.voice=ru;$('voice-label').textContent=ru.name;}
-utterance.onstart=()=>avatar.setMode('speaking');utterance.onend=()=>avatar.setMode('idle');utterance.onerror=()=>avatar.setMode('idle');speechSynthesis.speak(utterance);}
-function stop(){if(controller){controller.abort();controller=null;}if('speechSynthesis' in window)speechSynthesis.cancel();avatar.setMode('idle');$('stop').disabled=true;}
-$('quality').addEventListener('change',e=>avatar.setQuality(e.target.value));
-$('voice').addEventListener('click',()=>{voiceEnabled=!voiceEnabled;$('voice').textContent='Озвучивание: '+(voiceEnabled?'вкл.':'выкл.');$('voice').setAttribute('aria-pressed',String(voiceEnabled));if(!voiceEnabled&&'speechSynthesis' in window)speechSynthesis.cancel();$('voice-status').textContent=voiceEnabled?'Используется голос браузера; это не обязательно «Руслан».':'Озвучивание выключено';});
+let activeUtterance=null,voiceGeneration=0;
+function say(text){
+if(!voiceEnabled||!('speechSynthesis' in window)||!text.trim())return;
+const generation=++voiceGeneration;
+speechSynthesis.cancel();
+const utterance=new SpeechSynthesisUtterance(text);activeUtterance=utterance;utterance.lang='ru-RU';utterance.rate=1;
+const voices=speechSynthesis.getVoices(),ru=voices.find(v=>v.lang.toLowerCase().startsWith('ru'));
+if(ru){utterance.voice=ru;$('voice-label').textContent=ru.name;}else{$('voice-label').textContent='Системный голос';}
+let resetTimer=null;
+utterance.onstart=()=>{if(generation===voiceGeneration)avatar.setMode('speaking');};
+utterance.onboundary=e=>{
+if(generation!==voiceGeneration)return;
+if(e.name==='word'||e.charLength>0){avatar.setMouth(0.85);if(resetTimer)clearTimeout(resetTimer);resetTimer=setTimeout(()=>avatar.setMouth(0.1),125);}
+};
+const finish=()=>{if(resetTimer)clearTimeout(resetTimer);if(generation===voiceGeneration){avatar.setMouth(0);avatar.setMode('idle');activeUtterance=null;}};
+utterance.onend=finish;utterance.onerror=finish;
+speechSynthesis.speak(utterance);
+}
+function stop(){if(controller){controller.abort();controller=null;}voiceGeneration++;if('speechSynthesis' in window)speechSynthesis.cancel();activeUtterance=null;avatar.setMouth(0);avatar.setMode('idle');$('stop').disabled=true;}
+$('quality').value=['cinematic','balanced','eco'].includes(settings.quality)?settings.quality:'balanced';avatar.setQuality($('quality').value);
+$('quality').addEventListener('change',e=>{avatar.setQuality(e.target.value);saveSettings();});
+$('project').addEventListener('change',saveSettings);
+$('voice').addEventListener('click',()=>{voiceEnabled=!voiceEnabled;$('voice').textContent='Озвучивание: '+(voiceEnabled?'вкл.':'выкл.');$('voice').setAttribute('aria-pressed',String(voiceEnabled));if(!voiceEnabled){voiceGeneration++;if('speechSynthesis' in window)speechSynthesis.cancel();avatar.setMouth(0);avatar.setMode('idle');}saveSettings();$('voice-status').textContent=voiceEnabled?'Используется голос браузера; это не обязательно «Руслан».':'Озвучивание выключено';});
 $('stop').addEventListener('click',()=>{stop();$('chat-status').textContent='Получение ответа прервано';});
 $('listen').addEventListener('click',()=>{
 const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
