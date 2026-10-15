@@ -44,7 +44,10 @@ class PythonPracticeRunner:
             started = time.monotonic()
             try:
                 completed = subprocess.run(
-                    [sys.executable, "-I", "-B", "-m", "unittest", "test_solution", "-v"],
+                    [sys.executable, "-I", "-B", "-c",
+                     "import sys,unittest; sys.path.insert(0,sys.argv[1]); "
+                     "unittest.main(module=None,argv=[\u0027unittest\u0027,\u0027discover\u0027,\u0027-s\u0027,sys.argv[1],\u0027-p\u0027,\u0027test_solution.py\u0027,\u0027-v\u0027])",
+                     str(root)],
                     cwd=str(root), env=env, stdin=subprocess.DEVNULL,
                     capture_output=True, timeout=self.timeout_seconds, check=False)
                 output = (completed.stdout + completed.stderr)[:self.max_output_bytes].decode(
