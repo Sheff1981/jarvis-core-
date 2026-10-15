@@ -8,14 +8,21 @@ from urllib.parse import urlsplit
 
 from jarvis.learning import LearningJournal
 
-DEFAULT_FEED = "https://www.python.org/jobs/feed/rss/"
+DEFAULT_FEED = "https://github.com/python/cpython/releases.atom"
 
 
 def parse_feed(data):
     root = ET.fromstring(data)
     items = root.findall("./channel/item")
-    return [(item.findtext("title", "").strip(), item.findtext("link", "").strip())
-            for item in items]
+    if items:
+        return [(item.findtext("title", "").strip(), item.findtext("link", "").strip())
+                for item in items]
+    ns = {"atom": "http://www.w3.org/2005/Atom"}
+    entries = root.findall("./atom:entry", ns)
+    return [(entry.findtext("atom:title", "", ns).strip(),
+             next((link.get("href", "").strip() for link in entry.findall("atom:link", ns)
+                   if link.get("rel", "alternate") == "alternate"), ""))
+            for entry in entries]
 
 
 def collect(feed_url, db_path, fetch=None, limit=10):
