@@ -128,7 +128,8 @@ def main():
                         if args.diagnostics:
                             timings = session.last_timings or {}
                             print("JARVIS timing: assistant={}ms tts_total={}ms".format(
-                                timings.get("assistant_ms", "n/a"), tts_ms), flush=True)
+                                timings.get("assistant_ms", "n/a"),
+                                tts_ms if tts_ms is not None else "disabled"), flush=True)
                             # Avoid presenting metrics from a previous local command as current.
                             if timings.get("llm_used"):
                                 metrics = getattr(assistant.llm, "last_metrics", None)
