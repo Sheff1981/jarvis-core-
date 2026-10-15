@@ -83,10 +83,14 @@ class VoiceSession:
                     self.busy_event.set()
                     try:
                         on_event("heard", value)
+                        llm = getattr(self.assistant, "llm", None)
+                        if llm is not None and hasattr(llm, "last_metrics"):
+                            llm.last_metrics = None
                         started = time.perf_counter()
                         answer = self.assistant.respond(value)
                         assistant_ms = round((time.perf_counter() - started) * 1000, 1)
-                        self.last_timings = {"assistant_ms": assistant_ms}
+                        self.last_timings = {"assistant_ms": assistant_ms,
+                                             "llm_used": bool(getattr(llm, "last_metrics", None))}
                         on_event("answer", answer)
                         if answer == "Останавливаюсь.":
                             self.stop_event.set()
