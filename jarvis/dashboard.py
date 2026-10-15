@@ -6,6 +6,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from jarvis.system_metrics import snapshot
+from jarvis.growth_planner import GrowthPlanner
 from jarvis.projects import Projects
 from jarvis.ollama_stream import stream_project
 from jarvis.ollama_dialogue import OllamaError
@@ -38,6 +39,10 @@ def make_handler(db_path, stream_fn=stream_project):
                 data = json.dumps({"service": "JARVIS", "mode": "local",
                                    "dashboard": "online", **snapshot()}).encode()
                 self._reply(200, data, "application/json; charset=utf-8")
+            elif path == "/api/growth":
+                assessment = GrowthPlanner().assess(snapshot(), {})
+                self._reply(200, json.dumps(assessment.as_dict(), ensure_ascii=False).encode("utf-8"),
+                            "application/json; charset=utf-8")
             elif path == "/api/projects":
                 db = Projects(db_path)
                 try:
