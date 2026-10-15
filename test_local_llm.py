@@ -36,6 +36,18 @@ class LocalLLMTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "недоступна"):
                 LocalLLM().ask("Привет")
 
+    def test_thinking_is_opt_in_and_disabled_when_requested(self):
+        with patch("jarvis.local_llm.open_local", return_value=FakeResponse()) as opened:
+            LocalLLM(model="qwen3:1.7b", cpu_only=True).ask("Вопрос")
+            normal = json.loads(opened.call_args.args[0].data)
+            self.assertNotIn("think", normal)
+            LocalLLM(model="qwen3:1.7b", cpu_only=True, think=False).ask("Вопрос")
+            fast = json.loads(opened.call_args.args[0].data)
+            self.assertIs(fast["think"], False)
+            self.assertEqual(fast["options"]["num_gpu"], 0)
+        with self.assertRaises(TypeError):
+            LocalLLM(think="false")
+
     def test_second_request_includes_first_exchange(self):
         requests = []
         def fake_open(request, timeout):
