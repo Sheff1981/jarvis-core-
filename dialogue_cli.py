@@ -10,7 +10,7 @@ def main(argv=None, input_fn=input, output_fn=print, ask_fn=ask_project):
     parser = argparse.ArgumentParser(description="JARVIS local project chat")
     parser.add_argument("project_id", help="Existing project UUID")
     parser.add_argument("--db", default="jarvis.db")
-    parser.add_argument("--model", default="qwen2.5:3b")
+    parser.add_argument("--model", default="qwen2.5:1.5b")
     parser.add_argument("--timeout", type=float, default=120)
     args = parser.parse_args(argv)
     if args.timeout <= 0:
