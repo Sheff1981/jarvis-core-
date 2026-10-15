@@ -85,7 +85,7 @@ class CodeDraftDialogue:
     @staticmethod
     def _requested(phrase):
         text = phrase.casefold()
-        return (bool(re.search(r"\\b(?:создай|создал|сделай|написал|напиши|сгенерируй)\\b", text))
+        return (bool(re.search(r"\b(?:создай|создал|сделай|написал|напиши|сгенерируй)\b", text))
                 and bool(re.search(r"бот", text))
                 and bool(re.search(r"телеграм|telegram", text)))
 
@@ -124,7 +124,7 @@ class CodeDraftDialogue:
         try:
             compile(BOT_SOURCE, "bot.py", "exec")
             for name, data in (("bot.py", BOT_SOURCE), ("README.md", README)):
-                with (target / name).open("x", encoding="utf-8", newline="\\n") as file:
+                with (target / name).open("x", encoding="utf-8", newline="\n") as file:
                     file.write(data)
         except BaseException:
             for name in ("bot.py", "README.md"):
