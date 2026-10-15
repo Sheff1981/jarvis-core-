@@ -98,14 +98,16 @@ class LearningAudit:
     def verify_practice(self, goal_id, exercise, answer):
         """Award at most one credit per approved exercise after local verification."""
         from jarvis.practice_verifier import PracticeVerifier
-        skill = "python" if exercise.startswith("python-") else "web"
+        skill = "python" if exercise.startswith("python-") else "mathematics"
         result = PracticeVerifier.verify(exercise, answer)
         self.db.execute("BEGIN IMMEDIATE")
         try:
             goal = self.db.execute(
-                "SELECT status FROM learning_goals WHERE id=?", (goal_id,)).fetchone()
+                "SELECT status,domain FROM learning_goals WHERE id=?", (goal_id,)).fetchone()
             if goal is None or goal[0] == "paused":
                 raise ValueError("Unknown or paused learning goal")
+            if goal[1] != ("programming" if exercise.startswith("python-") else "mathematics"):
+                raise ValueError("Exercise does not match learning domain")
             self.db.execute("""CREATE TABLE IF NOT EXISTS learning_verified_exercises (
                 goal_id INTEGER NOT NULL, exercise TEXT NOT NULL,
                 evidence_sha256 TEXT NOT NULL, verified_at TEXT NOT NULL,
