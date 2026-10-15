@@ -60,7 +60,7 @@ def fetch_page(url):
     with urllib.request.urlopen(req, timeout=12) as response:
         if response.geturl() != url:
             raise ValueError("Unexpected redirect")
-        return response.read(MAX_BYTES + 1)
+        return response.read(MAX_BYTES)
 
 def collect(db_path, fetch=fetch_page):
     journal = LearningJournal(db_path)
