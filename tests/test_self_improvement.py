@@ -2,6 +2,7 @@
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 from jarvis.self_improvement import SelfImprovement
 
 
@@ -13,6 +14,7 @@ class SelfImprovementTests(unittest.TestCase):
         (self.root / "tests").mkdir()
         (self.root / "jarvis" / "sample.py").write_text("VALUE = 1\n")
         self.engine = SelfImprovement(self.root)
+        self.policy = OwnerPolicy(hashlib.sha256(b"test-owner-secret").hexdigest())
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -22,7 +24,8 @@ class SelfImprovementTests(unittest.TestCase):
         self.assertEqual((self.root / "jarvis" / "sample.py").read_text(), "VALUE = 1\n")
         with self.assertRaises(PermissionError):
             self.engine.apply(staging, "jarvis/sample.py")
-        backup = self.engine.apply(staging, "jarvis/sample.py", validated=True)
+        with mock.patch.object(self.engine, "validate", return_value={"passed": True, "output": "OK"}):
+            backup = self.engine.apply(staging, "jarvis/sample.py", owner_policy=self.policy, owner_token="test-owner-secret")
         self.assertEqual((self.root / "jarvis" / "sample.py").read_text(), "VALUE = 2\n")
         self.assertEqual(backup.read_text(), "VALUE = 1\n")
 
