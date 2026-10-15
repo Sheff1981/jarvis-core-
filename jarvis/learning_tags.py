@@ -3,6 +3,7 @@ import argparse
 import json
 import re
 import sqlite3
+from contextlib import closing
 import urllib.request
 from urllib.parse import quote
 from jarvis.learning import LearningJournal
@@ -48,7 +49,7 @@ def tag_metadata(tag, fetch=None):
 
 def collect(db_path, fetch=None, limit=5):
     journal = LearningJournal(db_path)
-    with sqlite3.connect(db_path) as db:
+    with closing(sqlite3.connect(db_path)) as db, db:
         rows = db.execute("""SELECT id,title FROM learning_events
             WHERE kind='rss' AND title LIKE 'v%' ORDER BY id DESC LIMIT ?""",
             (max(0, min(limit, 20)),)).fetchall()
@@ -58,7 +59,7 @@ def collect(db_path, fetch=None, limit=5):
             continue
         try:
             metadata = tag_metadata(tag, fetch)
-            with sqlite3.connect(db_path) as db:
+            with closing(sqlite3.connect(db_path)) as db, db:
                 exists = db.execute("""SELECT 1 FROM learning_events WHERE kind='release_tag'
                     AND json_extract(evidence,'$.source_event_id')=?""", (source_id,)).fetchone()
             if not exists:
