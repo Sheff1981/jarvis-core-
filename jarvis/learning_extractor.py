@@ -34,7 +34,14 @@ def extract_excerpt(data):
     parser = TextExtractor()
     parser.feed(data.decode("utf-8", errors="replace"))
     lines = [" ".join(line.split()) for line in "".join(parser.parts).splitlines()]
-    return next((line[:1500] for line in lines if 80 <= len(line) <= 1500), "")
+    blocks = [line for line in lines if line and len(line) >= 12]
+    for index, line in enumerate(blocks):
+        if len(line) >= 80:
+            return line[:1500]
+        combined = " ".join(blocks[index:index + 8])[:1500]
+        if len(combined) >= 80:
+            return combined
+    return ""
 
 def collect_evidence(db_path, fetch=None, limit=5):
     """Capture source text as a pending excerpt, not an inferred factual claim."""
