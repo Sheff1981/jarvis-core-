@@ -12,16 +12,16 @@ class ExplorerActionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             actions = WindowsActions()
             dialogue = ActionDialogue(actions)
-            with patch("jarvis.windows_actions.os.name", "nt"), patch(
-                "jarvis.windows_actions.os.startfile", create=True
-            ) as startfile:
+            with patch("jarvis.windows_actions.os.startfile", create=True) as startfile, patch.object(
+                WindowsActions, "execute", autospec=True, return_value={"opened": folder}
+            ) as execute:
                 prompt = dialogue.respond("джарвис открой папку " + folder)
                 self.assertIn("Разрешаешь", prompt)
                 startfile.assert_not_called()
                 answer = dialogue.respond("разрешаю")
                 self.assertIn("Открываю", answer)
-                startfile.assert_called_once()
-                self.assertEqual(Path(startfile.call_args.args[0]), Path(folder).resolve())
+                execute.assert_called_once()
+                self.assertEqual(execute.call_args.args[2], str(Path(folder).resolve()))
 
     def test_refusal_does_not_open_explorer(self):
         with tempfile.TemporaryDirectory() as folder:
