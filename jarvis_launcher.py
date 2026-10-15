@@ -10,6 +10,7 @@ import json
 
 from jarvis.dashboard import serve
 from jarvis.wake import WakeDispatcher
+from jarvis.learning_worker import start_learning_worker
 
 
 def open_when_ready(url, stop, timeout=15, opener=None):
@@ -28,7 +29,8 @@ def open_when_ready(url, stop, timeout=15, opener=None):
 
 
 def run(port=8765, db_path="jarvis.db", vosk_model=None, speak=False,
-        open_browser=False, voice_factory=None, speaker_factory=None):
+        open_browser=False, voice_factory=None, speaker_factory=None,
+        autonomous_learning=False):
     if not 1024 <= port <= 65535:
         raise ValueError("Invalid port")
     # Prevent a second instance from starting another listener on the same port.
@@ -45,6 +47,8 @@ def run(port=8765, db_path="jarvis.db", vosk_model=None, speak=False,
         probe.close()
     stop = threading.Event()
     listener = None
+    learning_thread = (start_learning_worker(stop, db_path)
+                       if autonomous_learning else None)
     if vosk_model:
         from jarvis.voice import VoiceInput
         voice = voice_factory(vosk_model) if voice_factory else VoiceInput(vosk_model)
@@ -101,6 +105,8 @@ def run(port=8765, db_path="jarvis.db", vosk_model=None, speak=False,
         stop.set()
         if listener:
             listener.join(timeout=3)
+        if learning_thread:
+            learning_thread.join(timeout=3)
     return True
 
 
@@ -111,10 +117,13 @@ def main(argv=None):
     parser.add_argument("--vosk-model", help="Enable local wake recognition using this model directory")
     parser.add_argument("--speak", action="store_true", help="Speak greetings via Windows SAPI")
     parser.add_argument("--open-browser", action="store_true", help="Open dashboard immediately")
+    parser.add_argument("--autonomous-learning", action="store_true",
+                        help="Opt in to background read-only Academy research")
     args = parser.parse_args(argv)
     try:
         run(port=args.port, db_path=args.db, vosk_model=args.vosk_model,
-            speak=args.speak, open_browser=args.open_browser)
+            speak=args.speak, open_browser=args.open_browser,
+            autonomous_learning=args.autonomous_learning)
     except KeyboardInterrupt:
         print("JARVIS остановлен")
 
