@@ -30,6 +30,7 @@ class WakeDispatcher:
         self.cooldown = cooldown
         self._last = float("-inf")
         self._lock = threading.Lock()
+        self._previous_greeting = None
 
     def handle(self, text):
         if not is_wake_phrase(text):
@@ -45,7 +46,10 @@ class WakeDispatcher:
             print("JARVIS: не удалось открыть браузер:", exc)
         if self.say_fn is not None:
             try:
-                self.say_fn(self.choice_fn(GREETINGS))
+                choices = tuple(g for g in GREETINGS if g != self._previous_greeting)
+                greeting = self.choice_fn(choices)
+                self._previous_greeting = greeting
+                self.say_fn(greeting)
             except Exception as exc:
                 print("JARVIS: голосовое приветствие недоступно:", exc)
         return True
