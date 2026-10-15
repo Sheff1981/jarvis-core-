@@ -15,6 +15,14 @@ class LearningAudit:
         )""")
         self.db.execute("""CREATE UNIQUE INDEX IF NOT EXISTS idx_learning_review_once
             ON learning_research_attempts(goal_id,source_url) WHERE outcome='reviewed'""")
+        self.db.execute("""CREATE TABLE IF NOT EXISTS learning_practice_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            goal_id INTEGER NOT NULL,
+            skill TEXT NOT NULL,
+            passed INTEGER NOT NULL CHECK(passed IN (0,1)),
+            evidence TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )""")
         self.db.commit()
 
     def record(self, goal_id, outcome, source_url=None):
@@ -63,6 +71,33 @@ class LearningAudit:
             self.db.rollback()
             raise
         return True
+
+    def record_practice(self, goal_id, skill, passed, evidence):
+        """Persist an externally verified exercise result, not a self-claim."""
+        from jarvis.academy import SKILLS
+        if not isinstance(goal_id, int) or goal_id < 1:
+            raise ValueError("Invalid goal")
+        if skill not in SKILLS or not isinstance(passed, bool):
+            raise ValueError("Invalid practice result")
+        if not isinstance(evidence, str) or not 1 <= len(evidence.strip()) <= 500:
+            raise ValueError("Missing practice evidence")
+        self.db.execute("BEGIN IMMEDIATE")
+        try:
+            goal = self.db.execute(
+                "SELECT status FROM learning_goals WHERE id=?", (goal_id,)).fetchone()
+            if goal is None or goal[0] == "paused":
+                raise ValueError("Unknown or paused learning goal")
+            self.db.execute(
+                "INSERT INTO learning_practice_results(goal_id,skill,passed,evidence,created_at) VALUES(?,?,?,?,?)",
+                (goal_id, skill, int(passed), evidence.strip(), datetime.now(timezone.utc).isoformat()))
+            if passed:
+                self.db.execute(
+                    "UPDATE learning_goals SET status='active', completed_sessions=completed_sessions+1, last_studied=? WHERE id=?",
+                    (datetime.now(timezone.utc).isoformat(), goal_id))
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
 
     def recent(self, limit=20):
         if not isinstance(limit, int) or not 1 <= limit <= 100:
