@@ -23,6 +23,14 @@ class WakeTests(unittest.TestCase):
         self.assertTrue(wake.handle("Джарвис"))
         self.assertEqual(len(opened), 2)
 
+    def test_broken_speaker_does_not_kill_listener(self):
+        def broken(_):
+            raise RuntimeError("Audio device unavailable")
+        opened = []
+        wake = WakeDispatcher(open_fn=opened.append, say_fn=broken)
+        self.assertTrue(wake.handle("джарвис привет"))
+        self.assertEqual(len(opened), 1)
+
     def test_silent_mode(self):
         opened = []
         wake = WakeDispatcher(open_fn=opened.append)
