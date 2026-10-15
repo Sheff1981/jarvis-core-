@@ -55,6 +55,8 @@ def main():
                         help="Keep CPU model loaded for 0-300 seconds (default: 0)")
     parser.add_argument("--cpu-only", action="store_true",
                         help="Run Ollama on CPU with a low-memory profile (no CUDA)")
+    parser.add_argument("--diagnostics", action="store_true",
+                        help="Print voice and Ollama latency measurements")
     parser.add_argument("--tray", action="store_true", help="Show a system tray with mute and exit")
     args = parser.parse_args()
     if not 0 <= args.ollama_keep_alive <= 300:
@@ -120,7 +122,16 @@ def main():
                 elif kind == "answer" and value is not None:
                     print("JARVIS:", value, flush=True)
                     try:
+                        tts_started = time.perf_counter()
                         speaker.say(value)
+                        tts_ms = round((time.perf_counter() - tts_started) * 1000, 1)
+                        if args.diagnostics:
+                            timings = session.last_timings or {}
+                            print("JARVIS timing: assistant={}ms tts_total={}ms".format(
+                                timings.get("assistant_ms", "n/a"), tts_ms), flush=True)
+                            metrics = getattr(assistant.llm, "last_metrics", None)
+                            if metrics:
+                                print("JARVIS Ollama metrics:", metrics, flush=True)
                     except RuntimeError as exc:
                         print("JARVIS: Ошибка голоса:", exc, flush=True)
                 elif kind == "error":
