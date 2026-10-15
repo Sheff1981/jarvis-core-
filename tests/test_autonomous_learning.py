@@ -41,6 +41,23 @@ class AutonomousLearningTests(unittest.TestCase):
         self.assertEqual(director.next_goals()[0]["completed_sessions"], 0)
         director.close()
 
+    def test_unexpected_research_status_is_not_marked_pending(self):
+        class UnexpectedResearcher:
+            def __init__(self, academy):
+                pass
+
+            def study(self, url, skill):
+                return ResearchResult(url, "direct", "mastered", 100)
+
+        from jarvis.learning_audit import LearningAudit
+        loop = AutonomousLearningLoop(
+            self.db, online_probe=lambda: True, researcher_factory=UnexpectedResearcher)
+        result = loop.tick(enabled=True)
+        self.assertEqual(result["results"][0]["status"], "error")
+        audit = LearningAudit(self.db)
+        self.assertEqual(audit.recent()[0]["outcome"], "error")
+        audit.close()
+
     def test_invalid_budget_rejected(self):
         loop = AutonomousLearningLoop(self.db, online_probe=lambda: True)
         with self.assertRaises(ValueError):
