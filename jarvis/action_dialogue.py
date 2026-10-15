@@ -20,8 +20,8 @@ class ActionDialogue:
         # drive letter C as "це". Normalize only an explicitly requested
         # drive-open phrase; approval is still mandatory.
         voice_drive = re.fullmatch(
-            r"(?:в\\s+)?(?:открой|открыть|покажи)\\s+(?:мне\\s+)?"
-            r"диск\\s+(це|си|с|c|дэ|де|д|d)\\s*",
+            r"(?:в\s+)?(?:открой|открыть|покажи)\s+(?:мне\s+)?"
+            r"диск\s+(це|си|с|c|дэ|де|д|d)\s*",
             phrase, re.IGNORECASE
         )
         if voice_drive:
