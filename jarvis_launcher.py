@@ -2,9 +2,26 @@
 import argparse
 import threading
 import webbrowser
+import time
+import urllib.request
 
 from jarvis.dashboard import serve
 from jarvis.wake import WakeDispatcher
+
+
+def open_when_ready(url, stop, timeout=15, opener=None):
+    opener = opener or webbrowser.open
+    deadline = time.monotonic() + timeout
+    while not stop.is_set() and time.monotonic() < deadline:
+        try:
+            with urllib.request.urlopen(url + '/api/session', timeout=0.5) as response:
+                if response.status == 200:
+                    opener(url)
+                    return True
+        except (OSError, ValueError):
+            pass
+        stop.wait(0.2)
+    return False
 
 
 def run(port=8765, db_path="jarvis.db", vosk_model=None, speak=False,
@@ -36,7 +53,8 @@ def run(port=8765, db_path="jarvis.db", vosk_model=None, speak=False,
     print("JARVIS:", url)
     print("Микрофон:", "активен" if vosk_model else "выключен")
     if open_browser:
-        webbrowser.open(url)
+        threading.Thread(target=open_when_ready, args=(url, stop),
+                         name='jarvis-browser', daemon=True).start()
     try:
         serve(port=port, db_path=db_path)
     finally:
