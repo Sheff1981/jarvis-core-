@@ -119,6 +119,19 @@ class StartupTests(unittest.TestCase):
                     startup_script(self.python, self.entry, self.model, self.db,
                                    llm_history_turns=turns)
 
+    def test_optional_no_think_flag_requires_cpu(self):
+        default = self.script()
+        self.assertNotIn("--llm-no-think", default)
+        tuned = startup_script(
+            self.python, self.entry, self.model, self.db,
+            piper_bin=self.piper, piper_voice=self.ruslan,
+            llm_no_think=True,
+        )
+        self.assertIn("--llm-no-think", tuned)
+        with self.assertRaises(ValueError):
+            startup_script(self.python, self.entry, self.model, self.db,
+                           cpu_only=False, llm_no_think=True)
+
     @patch("jarvis.startup.sys.platform", "win32")
     def test_memory_is_not_modified_by_install_or_remove(self):
         self.db.write_text("preserve database", encoding="utf-8")
