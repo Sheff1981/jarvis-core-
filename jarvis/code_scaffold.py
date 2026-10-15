@@ -4,6 +4,7 @@ Never runs generated code or opens network connections. No existing file is over
 """
 from pathlib import Path
 import re
+import time
 
 
 BOT_SOURCE = '''"""Basic Telegram echo bot. Standard library only; started manually."""
@@ -81,6 +82,8 @@ class CodeDraftDialogue:
         workspace = db.parent.parent if db.parent.name.lower() == "data" else db.parent
         self.output_root = workspace / "generated"
         self.pending = False
+        self.pending_until = 0.0
+        self.clock = time.monotonic
 
     @staticmethod
     def _requested(phrase):
@@ -92,6 +95,9 @@ class CodeDraftDialogue:
     def respond(self, phrase):
         text = phrase.strip().casefold()
         if self.pending:
+            if self.clock() >= self.pending_until:
+                self.pending = False
+                return "Срок подтверждения истёк. Создай запрос заново."
             if text in ("разрешаю", "подтверждаю", "да разрешаю", "да, разрешаю"):
                 self.pending = False
                 try:
@@ -106,6 +112,7 @@ class CodeDraftDialogue:
 
         if self._requested(phrase):
             self.pending = True
+            self.pending_until = self.clock() + 60
             return ("Могу создать исходники простого Telegram-бота в отдельной папке. "
                     "Ничего не запускаю и не меняю существующие проекты. "
                     "Разрешаешь? Ответь «разрешаю» или «нет».")
