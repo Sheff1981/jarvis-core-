@@ -1,7 +1,7 @@
 """Incremental sentence segmentation for text-to-speech."""
 import re
 
-_END = re.compile(r'[.!?…]+[»)]*(?=\\s|$)')
+_END = re.compile(r'[.!?…]+[»)]*(?=\s|$)')
 
 
 class SpeechChunker:
