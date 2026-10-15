@@ -21,7 +21,7 @@ class ExplorerActionTests(unittest.TestCase):
                 answer = dialogue.respond("разрешаю")
                 self.assertIn("Открываю", answer)
                 execute.assert_called_once()
-                self.assertEqual(execute.call_args.args[2], str(Path(folder).resolve()))
+                self.assertEqual(execute.call_args.args[3], str(Path(folder).resolve()))
 
     def test_refusal_does_not_open_explorer(self):
         with tempfile.TemporaryDirectory() as folder:
