@@ -23,6 +23,7 @@ class VoiceSession:
         self.stop_event = threading.Event()
         self.busy_event = threading.Event()
         self.capture_finished = threading.Event()
+        self.last_timings = None
 
     def listening_allowed(self):
         return (not self.stop_event.is_set() and not self.busy_event.is_set()
@@ -82,7 +83,10 @@ class VoiceSession:
                     self.busy_event.set()
                     try:
                         on_event("heard", value)
+                        started = time.perf_counter()
                         answer = self.assistant.respond(value)
+                        assistant_ms = round((time.perf_counter() - started) * 1000, 1)
+                        self.last_timings = {"assistant_ms": assistant_ms}
                         on_event("answer", answer)
                         if answer == "Останавливаюсь.":
                             self.stop_event.set()
