@@ -1,6 +1,7 @@
 """Single-command JARVIS launcher; no Windows startup changes."""
 import argparse
 import threading
+import queue
 import webbrowser
 import time
 import urllib.request
@@ -42,11 +43,28 @@ def run(port=8765, db_path="jarvis.db", vosk_model=None, speak=False,
                 speaker = Speaker(enabled=True, backend="sapi")
             say_fn = speaker.say
         wake = WakeDispatcher(url="http://127.0.0.1:%d" % port, say_fn=say_fn)
+        phrases = queue.Queue(maxsize=8)
+        def enqueue(text):
+            try:
+                phrases.put_nowait(text)
+            except queue.Full:
+                pass
+        def dispatch():
+            while not stop.is_set():
+                try:
+                    phrase = phrases.get(timeout=0.2)
+                except queue.Empty:
+                    continue
+                try:
+                    wake.handle(phrase)
+                except Exception as exc:
+                    print('JARVIS: ошибка обработки команды:', exc)
+        threading.Thread(target=dispatch, name='jarvis-wake-actions', daemon=True).start()
         def listen():
             failures = 0
             while not stop.is_set():
                 try:
-                    voice.listen(wake.handle, stop)
+                    voice.listen(enqueue, stop)
                     if stop.is_set():
                         break
                     raise RuntimeError("Слушатель неожиданно завершился")
