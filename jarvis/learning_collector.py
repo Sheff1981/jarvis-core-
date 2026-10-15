@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 from urllib.parse import urlsplit
 
 from jarvis.learning import LearningJournal
+from jarvis.learning_filter import classify
 
 DEFAULT_FEED = "https://github.com/python/cpython/releases.atom"
 
@@ -46,7 +47,10 @@ def collect(feed_url, db_path, fetch=None, limit=10):
         parsed = urlsplit(link)
         if not title or parsed.scheme != "https" or not parsed.hostname or link in known:
             continue
-        journal.record("rss", title, "collected", {"url": link, "feed": feed_url})
+        category = classify(title, link)
+        if category == "irrelevant":
+            continue
+        journal.record("rss", title, "collected", {"url": link, "feed": feed_url, "category": category})
         known.add(link)
         count += 1
     return count
