@@ -2,6 +2,7 @@
 import argparse
 import json
 import sqlite3
+from contextlib import closing
 import urllib.request
 import xml.etree.ElementTree as ET
 from urllib.parse import urlsplit
@@ -40,7 +41,7 @@ def collect(feed_url, db_path, fetch=None, limit=10):
         raise ValueError("Feed exceeds 1 MiB")
     journal = LearningJournal(db_path)
     count = 0
-    with sqlite3.connect(db_path) as db:
+    with closing(sqlite3.connect(db_path)) as db, db:
         known = {json.loads(row[0]).get("url") for row in
                  db.execute("SELECT evidence FROM learning_events WHERE kind='rss'")}
     for title, link in parse_feed(data)[:limit]:
