@@ -8,7 +8,7 @@ from urllib.parse import urlsplit
 
 from jarvis.learning import LearningJournal
 
-DEFAULT_FEED = "https://www.python.org/blogs/rss/"
+DEFAULT_FEED = "https://www.python.org/jobs/feed/rss/"
 
 
 def parse_feed(data):
