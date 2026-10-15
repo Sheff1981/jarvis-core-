@@ -24,6 +24,27 @@ class AssistantTests(unittest.TestCase):
             self.assertEqual(llm.prompts, [])
             assistant.close()
 
+    def test_identity_and_purpose_are_local_and_grounded(self):
+        variants = (
+            "кто ты и зачем",
+            "ответь мне на вопрос кто ты и зачем",
+            "для чего я тебя создаю",
+            "все для чего я тебе конструирует",
+        )
+        with tempfile.TemporaryDirectory() as folder:
+            llm = StubLLM()
+            assistant = Assistant(str(Path(folder) / "memory.db"), llm=llm)
+            try:
+                for question in variants:
+                    with self.subTest(question=question):
+                        answer = assistant.respond(question)
+                        self.assertIn("Джарвис", answer)
+                        self.assertIn("голосов", answer)
+                        self.assertIn("разрабатывается", answer)
+                self.assertEqual(llm.prompts, [])
+            finally:
+                assistant.close()
+
     def test_general_question_uses_llm(self):
         with tempfile.TemporaryDirectory() as folder:
             llm = StubLLM()
