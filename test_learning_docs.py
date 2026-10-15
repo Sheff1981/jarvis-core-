@@ -1,6 +1,7 @@
 import json
 import os
 import sqlite3
+from contextlib import closing
 import tempfile
 import unittest
 from jarvis.learning_docs import collect, extract, PAGES
@@ -46,7 +47,7 @@ class DocumentationTests(unittest.TestCase):
             db_path = os.path.join(directory, "learning.db")
             self.assertEqual(collect(db_path, lambda url: HTML)["documents_collected"], len(PAGES))
             self.assertEqual(collect(db_path, lambda url: HTML)["documents_collected"], 0)
-            with sqlite3.connect(db_path) as db:
+            with closing(sqlite3.connect(db_path)) as db:
                 rows = db.execute("SELECT status,evidence FROM learning_events WHERE kind='official_doc'").fetchall()
             self.assertEqual(len(rows), len(PAGES))
             self.assertTrue(all(status == "collected" for status, _ in rows))
