@@ -2,6 +2,7 @@
 import hashlib
 import json
 import sqlite3
+from contextlib import closing
 from datetime import datetime, timezone
 from urllib.parse import urlsplit
 
@@ -15,7 +16,7 @@ def add_evidence(db_path, source_event_id, claim, excerpt, source_url):
         raise ValueError("Claim or excerpt is empty or too long")
     if url.scheme != "https" or not url.hostname or url.username or url.password:
         raise ValueError("HTTPS evidence URL required")
-    with sqlite3.connect(db_path, timeout=10) as db:
+    with closing(sqlite3.connect(db_path, timeout=10)) as db, db:
         db.execute("""CREATE TABLE IF NOT EXISTS learning_evidence (
             id INTEGER PRIMARY KEY,
             source_event_id INTEGER NOT NULL,
@@ -42,7 +43,7 @@ def add_evidence(db_path, source_event_id, claim, excerpt, source_url):
             (source_event_id, claim, digest)).fetchone()[0]
 
 def pending_evidence(db_path):
-    with sqlite3.connect(db_path, timeout=10) as db:
+    with closing(sqlite3.connect(db_path, timeout=10)) as db, db:
         return [dict(zip(("id","claim","excerpt","source_url","review_status"), row))
                 for row in db.execute("""SELECT id,claim,excerpt,source_url,review_status
                     FROM learning_evidence WHERE review_status='pending' ORDER BY id""")]
