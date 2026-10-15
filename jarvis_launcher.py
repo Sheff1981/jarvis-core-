@@ -5,6 +5,7 @@ import queue
 import webbrowser
 import time
 import urllib.request
+import socket
 
 from jarvis.dashboard import serve
 from jarvis.wake import WakeDispatcher
@@ -29,6 +30,18 @@ def run(port=8765, db_path="jarvis.db", vosk_model=None, speak=False,
         open_browser=False, voice_factory=None, speaker_factory=None):
     if not 1024 <= port <= 65535:
         raise ValueError("Invalid port")
+    # Prevent a second instance from starting another listener on the same port.
+    probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        probe.bind(("127.0.0.1", port))
+    except OSError as exc:
+        probe.close()
+        if open_browser:
+            webbrowser.open("http://127.0.0.1:%d" % port)
+        print("JARVIS: порт занят; второй экземпляр не запущен")
+        return False
+    finally:
+        probe.close()
     stop = threading.Event()
     listener = None
     if vosk_model:
@@ -87,6 +100,7 @@ def run(port=8765, db_path="jarvis.db", vosk_model=None, speak=False,
         stop.set()
         if listener:
             listener.join(timeout=3)
+    return True
 
 
 def main(argv=None):
