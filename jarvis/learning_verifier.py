@@ -2,6 +2,7 @@
 import argparse
 import json
 import sqlite3
+from contextlib import closing
 from urllib.parse import urlsplit
 
 from jarvis.learning import LearningJournal
@@ -24,7 +25,7 @@ def audit(db_path):
     """Append provenance audit events; do not upgrade headline claims to verified."""
     journal = LearningJournal(db_path)
     accepted = rejected = 0
-    with sqlite3.connect(db_path) as db:
+    with closing(sqlite3.connect(db_path)) as db, db:
         rows = db.execute("SELECT id,title,evidence FROM learning_events WHERE kind='rss' AND status='collected'").fetchall()
         checked = {json.loads(row[0]).get("source_event_id") for row in db.execute(
             "SELECT evidence FROM learning_events WHERE kind='source_audit'")}
