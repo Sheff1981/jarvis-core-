@@ -3,7 +3,7 @@ from jarvis.learning_extractor import extract_excerpt, MAX_HTML
 
 class ExtractorTests(unittest.TestCase):
     def test_extracts_article_and_ignores_scripts(self):
-        data = b"<html><script>SECRET</script><p>" + b"Python release notes explain compatibility and security changes for this release in detail." + b"</p></html>"
+        data = b"<html><script>SECRET</script><div class=\"markdown-body\"><p>" + b"Python release notes explain compatibility and security changes for this release in detail." + b"</p></div></html>"
         result = extract_excerpt(data)
         self.assertIn("Python release notes", result)
         self.assertNotIn("SECRET", result)
@@ -11,3 +11,6 @@ class ExtractorTests(unittest.TestCase):
     def test_rejects_large_page(self):
         with self.assertRaises(ValueError):
             extract_excerpt(b"x" * (MAX_HTML + 1))
+
+    def test_rejects_navigation_only_page(self):
+        self.assertEqual(extract_excerpt(b"<html><nav>Skip to content</nav><p>Sign in to GitHub</p></html>"), "")
