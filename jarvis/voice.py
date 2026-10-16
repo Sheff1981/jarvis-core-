@@ -26,6 +26,7 @@ class VoiceInput:
         # Counters describe only this capture run, never a previous run.
         self.vad_activity_frames = 0
         self.vad_total_frames = 0
+        self.vad_error = None
         vad = None
         if self.vad_diagnostics:
             try:
@@ -41,7 +42,11 @@ class VoiceInput:
 
             recognizer = KaldiRecognizer(model, self.sample_rate)
             if vad is not None:
-                vad.reset()
+                try:
+                    vad.reset()
+                except Exception as exc:
+                    self.vad_error = str(exc)
+                    vad = None
 
             callback_error = []
 
@@ -52,16 +57,17 @@ class VoiceInput:
                 ):
                     raise sd.CallbackStop()
                 try:
+                    audio = bytes(indata)
                     if vad is not None:
                         try:
-                            decisions = vad.push(bytes(indata))
+                            decisions = vad.push(audio)
                             self.vad_total_frames += len(decisions)
                             self.vad_activity_frames += sum(decisions)
                         except Exception as exc:
                             # Diagnostics must never prevent Vosk transcription.
                             self.vad_error = str(exc)
                             vad = None
-                    if recognizer.AcceptWaveform(bytes(indata)):
+                    if recognizer.AcceptWaveform(audio):
                         phrase = json.loads(recognizer.Result()).get("text", "").strip()
                         if phrase and not stop_event.is_set() and (
                             should_listen is None or should_listen()
