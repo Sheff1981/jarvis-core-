@@ -1,7 +1,7 @@
 """Contract tests for the optional VAD audio interface."""
 import unittest
 
-from jarvis.vad import SpeechDetector, validate_pcm16_frame
+from jarvis.vad import EnergyVAD, SpeechDetector, validate_pcm16_frame
 
 
 class VADContractTests(unittest.TestCase):
@@ -26,6 +26,19 @@ class VADContractTests(unittest.TestCase):
     def test_nonbytes_are_rejected(self):
         with self.assertRaises(TypeError):
             validate_pcm16_frame(bytearray(320), 16000, 10)
+
+    def test_energy_vad_silence_and_loud_audio(self):
+        import struct
+        vad = EnergyVAD(threshold=500)
+        self.assertFalse(vad.is_speech(bytes(640)))
+        self.assertTrue(vad.is_speech(struct.pack("<320h", *([1200] * 320))))
+        self.assertFalse(vad.is_speech(struct.pack("<320h", *([200] * 320))))
+
+    def test_energy_vad_rejects_invalid_thresholds(self):
+        for value in (-1, float("nan"), float("inf"), True, "500"):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    EnergyVAD(threshold=value)
 
     def test_detector_implementation_contract(self):
         class TestDetector(SpeechDetector):
