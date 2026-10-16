@@ -27,6 +27,28 @@ class VADContractTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             validate_pcm16_frame(bytearray(320), 16000, 10)
 
+    def test_vad_stream_emits_per_frame_activity(self):
+        import struct
+        from jarvis.vad import VADStream
+        stream = VADStream(start_frames=2, stop_frames=2)
+        loud = struct.pack("<320h", *([1200] * 320))
+        quiet = bytes(640)
+        self.assertEqual(stream.push(loud[:200]), [])
+        self.assertEqual(stream.push(loud[200:]), [False])
+        self.assertEqual(stream.push(loud), [True])
+        self.assertEqual(stream.push(quiet), [True])
+        self.assertEqual(stream.push(quiet), [False])
+
+    def test_vad_stream_reset_clears_pending_and_activity(self):
+        import struct
+        from jarvis.vad import VADStream
+        stream = VADStream(start_frames=1, stop_frames=2)
+        loud = struct.pack("<320h", *([1200] * 320))
+        self.assertEqual(stream.push(loud), [True])
+        stream.push(bytes(100))
+        stream.reset()
+        self.assertEqual(stream.push(bytes(640)), [False])
+
     def test_activity_tracker_requires_sustained_sound(self):
         from jarvis.vad import SpeechActivityTracker
         tracker = SpeechActivityTracker(start_frames=2, stop_frames=3)
