@@ -37,3 +37,9 @@ JARVIS CORE's long-term objective is its own neural network and native engines f
 - Bilingual logs updated: edff334, 6a85de0.
 - N0 NOT ACCEPTED: physical Windows 10 Vosk/Piper/Ollama test, resource metrics, and acceptance record remain outstanding.
 - Single next action: only after the owner says “Выгружаем”, back up and update D:\\JARVIS-test using PowerShell, then complete docs/ru/VOICE_N0_ACCEPTANCE.md.
+
+## N0 addendum — 2026-10-16
+- Event queue: CI #1058 passed (microphone error retained), #1060 passed (speech during answer discarded), #1062 passed (busy gate cleared).
+- Consecutive dialogue without repeating wake word: CI #1066 passed on Windows and Ubuntu, commit 8bb705d.
+- Physical Windows 10 acceptance remains outstanding; N0 is not closed.
+- Next: wait for “Выгружаем”, back up, update D:\\JARVIS-test via PowerShell, and run hardware checks.
