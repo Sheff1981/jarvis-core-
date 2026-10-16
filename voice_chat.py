@@ -35,6 +35,8 @@ def main():
     parser = argparse.ArgumentParser(description="Offline JARVIS voice assistant")
     parser.add_argument("--model", required=False, help="Extracted Vosk Russian model directory")
     parser.add_argument("--llm-model", default="qwen2.5:3b")
+    parser.add_argument("--jarvis-conversation-core", action="store_true",
+                        help="Opt in to the new private conversation routing")
     parser.add_argument("--db", default="jarvis.db")
     parser.add_argument("--always-listen", action="store_true",
                         help="Opt in to processing speech without wake-word activation")
@@ -109,13 +111,15 @@ def main():
             if args.cpu_only:
                 assistant = Assistant(
                     db_path=args.db, model=args.llm_model,
+                    use_conversation_core=args.jarvis_conversation_core,
                     llm=LocalLLM(model=args.llm_model, timeout=120, cpu_only=True,
                                  keep_alive_seconds=args.ollama_keep_alive,
                                  max_turns=args.llm_history_turns,
                                  think=False if args.llm_no_think else None),
                 )
             else:
-                assistant = Assistant(db_path=args.db, model=args.llm_model)
+                assistant = Assistant(db_path=args.db, model=args.llm_model,
+                                      use_conversation_core=args.jarvis_conversation_core)
             speaker = Speaker(enabled=args.speak, backend=args.tts,
                               piper_exe=args.piper_bin, voice_model=args.piper_voice,
                               **piper_pacing)
