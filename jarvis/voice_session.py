@@ -87,6 +87,11 @@ class VoiceSession:
                                 self.assistant.action_dialogue.close()
                             on_event("answer", "Перехожу в режим ожидания." if sleeping
                                      else "Слушаю.")
+                        except Exception:
+                            # A failed control reply must not leave the session
+                            # active with an unreliable microphone state.
+                            self.stop_event.set()
+                            raise
                         finally:
                             retained = []
                             while True:
