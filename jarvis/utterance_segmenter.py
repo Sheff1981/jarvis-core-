@@ -6,6 +6,8 @@ class UtteranceSegmenter:
                  start_frames=3, end_frames=25, max_seconds=15):
         if sample_rate != 16000 or frame_ms != 20:
             raise ValueError("16kHz and 20ms frames required")
+        if min(start_frames, end_frames, max_seconds) <= 0:
+            raise ValueError('segmentation parameters must be positive')
         self.detector = detector
         self.frame_size = sample_rate * frame_ms * 2 // 1000
         self.start_frames = start_frames
@@ -22,6 +24,8 @@ class UtteranceSegmenter:
         self.quiet = 0
 
     def push(self, chunk):
+        if not isinstance(chunk, bytes) or len(chunk) % 2:
+            raise ValueError('PCM16 chunks must be aligned bytes')
         self.pending.extend(chunk)
         completed = []
         while len(self.pending) >= self.frame_size:
