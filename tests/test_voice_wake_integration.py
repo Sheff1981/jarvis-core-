@@ -151,6 +151,22 @@ class VoiceWakeIntegrationTests(unittest.TestCase):
                             for kind, value in events))
         self.assertFalse(voice.busy_event.is_set())
 
+    def test_new_session_after_stop_accepts_wake(self):
+        class StopOnceAssistant(FakeAssistant):
+            def respond(self, phrase):
+                self.received.append(phrase)
+                return "Останавливаюсь." if phrase == "заверши" else "Понял."
+
+        assistant = StopOnceAssistant()
+        first = VoiceSession(assistant, FakeInput(["джарвис заверши"]),
+                             require_wake=True)
+        first.run(lambda *args: None)
+        self.assertTrue(first.stop_event.is_set())
+        second = VoiceSession(assistant, FakeInput(["джарвис снова"]),
+                              require_wake=True)
+        second.run(lambda *args: None)
+        self.assertEqual(assistant.received, ["заверши", "снова"])
+
     def test_wake_expires_after_idle_timeout(self):
         assistant = FakeAssistant()
         ticks = iter([0, 10, 311, 312])
