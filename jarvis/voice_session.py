@@ -70,7 +70,7 @@ class VoiceSession:
                     if activated:
                         self.active = True
                         # Keep the exact named greeting for Assistant.
-                        greeting = value.casefold().strip(" .,!?:;")
+                        greeting = " ".join(value.casefold().replace(",", " ").split()).strip(" .!?:;")
                         value = ("привет джарвис" if greeting == "привет джарвис"
                                  else command)
                     if self.require_wake:
