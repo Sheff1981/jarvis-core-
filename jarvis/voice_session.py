@@ -75,15 +75,30 @@ class VoiceSession:
                                  else command)
                     if self.require_wake:
                         self.active_until = now + self.idle_seconds
-                    if value.casefold() in ("спи", "засыпай"):
+                    if value.casefold() in ("спи", "засыпай") or not value:
                         self.last_timings = None
-                        self.active = False
-                        self.assistant.action_dialogue.close()
-                        on_event("answer", "Перехожу в режим ожидания.")
-                        continue
-                    if not value:
-                        self.last_timings = None
-                        on_event("answer", "Слушаю.")
+                        sleeping = bool(value)
+                        if sleeping:
+                            self.active = False
+                        # Control replies use TTS too: block microphone feedback.
+                        self.busy_event.set()
+                        try:
+                            if sleeping:
+                                self.assistant.action_dialogue.close()
+                            on_event("answer", "Перехожу в режим ожидания." if sleeping
+                                     else "Слушаю.")
+                        finally:
+                            retained = []
+                            while True:
+                                try:
+                                    queued = self.events.get_nowait()
+                                except queue.Empty:
+                                    break
+                                if queued[0] != "speech":
+                                    retained.append(queued)
+                            for item in retained:
+                                self.events.put(item)
+                            self.busy_event.clear()
                         continue
                     self.busy_event.set()
                     try:
