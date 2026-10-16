@@ -80,3 +80,8 @@ Requirements source: JARVIS CORE ENGINEERING SPECIFICATION, Stage 03 «Memory an
 - Regression tests cover checkpoint, idea/decision and export/delete: 8c35ef7, df57c9a, c81fd92.
 - CI #1386 for restore portability fix: Windows and Ubuntu success. CI #1393 for dialogue export/delete: Ubuntu success, Windows still running at time of writing.
 - Do not close Stage 03 until CI #1393 finishes and the latest final commit is rechecked.
+
+
+### CI confirmation — 2026-10-16
+- GitHub Actions #1403 (run 38923733530) for deletion-safety fix: Ubuntu 24.04 success, Windows success; commit c801dc4.
+- Automated Memory Core checks passed on Windows/Ubuntu at the latest functional commit. Laptop hardware testing and manual disaster-recovery procedure remain outstanding; software CI acceptance is confirmed, but full owner acceptance is not claimed.
