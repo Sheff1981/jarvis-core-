@@ -13,6 +13,7 @@ class UtteranceSegmenter:
         self.start_frames = start_frames
         self.end_frames = end_frames
         self.max_size = sample_rate * 2 * max_seconds
+        self.dropped_utterances = 0
         self.reset()
 
     def reset(self):
@@ -22,6 +23,7 @@ class UtteranceSegmenter:
         self.active = False
         self.consecutive = 0
         self.quiet = 0
+        self.discard_until_silence = False
 
     def push(self, chunk):
         if not isinstance(chunk, bytes) or len(chunk) % 2:
@@ -32,6 +34,12 @@ class UtteranceSegmenter:
             frame = bytes(self.pending[:self.frame_size])
             del self.pending[:self.frame_size]
             speech = bool(self.detector(frame))
+            if self.discard_until_silence:
+                self.quiet = 0 if speech else self.quiet + 1
+                if self.quiet >= self.end_frames:
+                    self.discard_until_silence = False
+                    self.quiet = 0
+                continue
             if not self.active:
                 self.preroll.append(frame)
                 self.preroll = self.preroll[-10:]
@@ -43,7 +51,13 @@ class UtteranceSegmenter:
             self.audio.extend(frame)
             self.quiet = 0 if speech else self.quiet + 1
             if len(self.audio) > self.max_size:
-                self.reset()
+                self.dropped_utterances += 1
+                self.audio.clear()
+                self.preroll.clear()
+                self.active = False
+                self.consecutive = 0
+                self.quiet = 0
+                self.discard_until_silence = True
                 continue
             if self.quiet >= self.end_frames:
                 completed.append(bytes(self.audio))
