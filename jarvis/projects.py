@@ -237,8 +237,7 @@ class Projects:
         if not target.parent.is_dir() or target.exists():
             raise ValueError("Restore destination must be a new file in an existing directory")
         try:
-            with sqlite3.connect(f"file:{source_path.resolve().as_posix()}?mode=ro",
-                                 uri=True) as source_db:
+            with sqlite3.connect(str(source_path)) as source_db:
                 if source_db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
                     raise sqlite3.DatabaseError("Backup integrity check failed")
                 tables = {row[0] for row in source_db.execute(
