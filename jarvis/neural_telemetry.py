@@ -11,16 +11,23 @@ class InferenceTelemetry:
     rss_before_bytes: int | None
     rss_after_bytes: int | None
     backend: str
+    succeeded: bool = True
 
 
 def measured_inference(adapter, prompt, clock=perf_counter,
                        memory_probe=current_process_memory):
     before = memory_probe()
     start = clock()
+    result = None
+    succeeded = False
     try:
         result = adapter.infer(prompt)
+        succeeded = True
+        return result, InferenceTelemetry(
+            max(0.0, (clock() - start) * 1000),
+            before.rss_bytes, memory_probe().rss_bytes,
+            result.backend, succeeded)
     finally:
-        elapsed = max(0.0, (clock() - start) * 1000)
-    after = memory_probe()
-    return result, InferenceTelemetry(
-        elapsed, before.rss_bytes, after.rss_bytes, result.backend)
+        # The caller retains the original inference exception. No transcripts
+        # or prompts are logged by this measurement layer.
+        pass
