@@ -38,3 +38,7 @@ Added project_decisions and project_ideas to existing SQLite (a03f630), restart,
 
 ## 2026-10-16 — Stage 03: export and deletion
 Implemented JSON project export and explicitly confirmed transactional deletion (ae13729); isolation and shared-history regression test (b6504d6). Latest CI not yet confirmed. Durable checkpoint acceptance gate awaits final CI and migration recovery verification.
+
+
+## 2026-10-16 — Stage 03 documentation reconciliation
+CI #1357: Windows and Ubuntu success (b7d2ecf). CURRENT_STATUS RU/EN reconciled with evidence, limitations and acceptance state. Documentation is reconciled; Stage 03 remains open pending voice idea-queue integration, disaster recovery validation and owner acceptance. No native trained weights claimed.
