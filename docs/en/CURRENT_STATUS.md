@@ -25,3 +25,6 @@ Audit wake_word → VoiceSession → Assistant → Ollama → Piper and add/fix 
 - GitHub → laptop/server updates with backups.
 - Durable task checkpoints within JARVIS.
 - Curated training corpus, then LoRA/QLoRA and custom voice.
+
+## Target architecture (owner decision, 2026-10-16)
+JARVIS CORE's long-term objective is its own neural network and native engines for language processing, memory, learning, and dialogue. Qwen/Ollama are temporary prototype components, not the target architecture. Native trained weights and engines have not yet been implemented. The current active task remains unchanged: complete and validate the voice core without breaking existing functions.
