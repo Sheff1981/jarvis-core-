@@ -55,3 +55,33 @@ class EnergyVAD(SpeechDetector):
         if sys.byteorder != "little":
             samples.byteswap()
         return math.sqrt(sum(sample * sample for sample in samples) / len(samples)) >= self.threshold
+
+
+class AudioFrameBuffer:
+    """Convert arbitrary PCM16 chunks into fixed-duration VAD frames."""
+
+    def __init__(self, sample_rate=16000, frame_ms=20):
+        validate_pcm16_frame(bytes(sample_rate * frame_ms // 1000 * 2),
+                             sample_rate, frame_ms)
+        self.frame_bytes = sample_rate * frame_ms // 1000 * 2
+        self._pending = bytearray()
+
+    def push(self, chunk: bytes):
+        if not isinstance(chunk, bytes):
+            raise TypeError("PCM chunk must be bytes")
+        if len(chunk) % 2:
+            raise ValueError("PCM16 chunk must contain complete samples")
+        self._pending.extend(chunk)
+        frames = []
+        while len(self._pending) >= self.frame_bytes:
+            frames.append(bytes(self._pending[:self.frame_bytes]))
+            del self._pending[:self.frame_bytes]
+        return frames
+
+    def reset(self):
+        """Drop incomplete audio when microphone capture is restarted."""
+        self._pending.clear()
+
+    @property
+    def pending_bytes(self):
+        return len(self._pending)
