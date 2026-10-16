@@ -62,3 +62,7 @@ Added Russian commands for exact-name project export and deletion gated by a sep
 
 ## 2026-10-16 — Deletion confirmation safety
 Review found pending deletion could survive an unrelated utterance. Fixed: cancel, stop and any unrelated input clear the pending deletion; added regression test (0bb6f90, c801dc4). CI for this fix is pending.
+
+
+## CI result — Memory Core, 2026-10-16
+GitHub Actions #1403 passed: Windows and Ubuntu success for c801dc4. Automated regression coverage for export/deletion and cancellation of pending deletion is green. Hardware acceptance and manual restore procedure remain outstanding.
