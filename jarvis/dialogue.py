@@ -11,6 +11,7 @@ class Dialogue:
         self.projects = Projects(db_path)
         self.pending_project_id = None
         self.awaiting_project_name = False
+        self.pending_delete_project_id = None
         self.session = Session()
         self.model = model
         self.conversation = ConversationMemory(db_path)
@@ -25,11 +26,13 @@ class Dialogue:
         if normalized in ('режим беседы', 'разговорный режим', 'давай просто поговорим'):
             self.pending_project_id = None
             self.awaiting_project_name = False
+            self.pending_delete_project_id = None
             self.session.switch(Mode.CONVERSATION)
             return 'Перешёл в разговорный режим. Действия с компьютером отключены.'
         if normalized in ('рабочий режим', 'режим работы', 'работай'):
             self.pending_project_id = None
             self.awaiting_project_name = False
+            self.pending_delete_project_id = None
             self.session.switch(Mode.WORK)
             return 'Рабочий режим включён. Каждое действие потребует отдельного разрешения.'
         if not text:
@@ -77,6 +80,40 @@ class Dialogue:
                     f"Подтверждение: {checkpoint['evidence'] or 'нет'}. "
                     f"Блокеры: {checkpoint['blockers'] or 'нет'}. "
                     f"Следующий шаг: {checkpoint['next_step'] or 'не определён'}.")
+        export_match = re.fullmatch(
+            r"(?:джарвис[, ]+)?экспорт проекта\\s+(.+)", text, flags=re.I)
+        if export_match:
+            name = export_match.group(1).strip().casefold()
+            matches = [p for p in self.projects.list(include_done=True)
+                       if p["name"].casefold() == name]
+            if len(matches) != 1:
+                return "Не найден ровно один проект с таким названием."
+            return self.projects.export_project(matches[0]["id"])
+        delete_match = re.fullmatch(
+            r"(?:джарвис[, ]+)?удали проект\\s+(.+)", text, flags=re.I)
+        if delete_match:
+            name = delete_match.group(1).strip().casefold()
+            matches = [p for p in self.projects.list(include_done=True)
+                       if p["name"].casefold() == name]
+            if len(matches) != 1:
+                return "Не найден ровно один проект с таким названием."
+            self.pending_delete_project_id = matches[0]["id"]
+            return (f"Удаление проекта «{matches[0]['name']}» затронет его контрольные точки, "
+                    "решения и идеи. История разговоров останется. Для подтверждения скажи: "
+                    f"подтверждаю удаление проекта {matches[0]['name']}.")
+        confirm_delete = re.fullmatch(
+            r"подтверждаю удаление проекта\\s+(.+)", text, flags=re.I)
+        if confirm_delete:
+            if self.pending_delete_project_id is None:
+                return "Нет ожидающего удаления проекта."
+            expected_id = self.pending_delete_project_id
+            expected = next((p for p in self.projects.list(include_done=True)
+                             if p["id"] == expected_id), None)
+            self.pending_delete_project_id = None
+            if expected is None or expected["name"].casefold() != confirm_delete.group(1).strip().casefold():
+                return "Подтверждение не совпало. Удаление отменено."
+            self.projects.delete_project(expected_id, confirm=True)
+            return f"Проект «{expected['name']}» удалён. История разговоров сохранена."
         checkpoint_match = re.fullmatch(
             r"(?:джарвис[, ]+)?контрольная точка\\s*:\\s*(.+)",
             text, flags=re.I)
