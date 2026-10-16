@@ -82,6 +82,8 @@ class Assistant:
         phrase = phrase.strip()
         if not phrase:
             return "Я слушаю."
+        if phrase.casefold().strip(" .,!?") == "привет фермец":
+            return "Привет, пап, я родился."
         if phrase.casefold() in ("очисти историю разговора", "забудь наш разговор"):
             self.clear_conversation()
             return "История разговора удалена из локальной памяти."
