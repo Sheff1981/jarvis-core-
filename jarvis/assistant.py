@@ -5,6 +5,7 @@ from jarvis.action_audit import ActionAudit
 from jarvis.action_dialogue import ActionDialogue
 from jarvis.windows_actions import WindowsActions
 from jarvis.conversation_store import ConversationStore
+from jarvis.conversation_core import JarvisConversation
 from jarvis.code_scaffold import CodeDraftDialogue
 from jarvis.dialogue import Dialogue
 from jarvis.facts import FactStore
@@ -61,13 +62,15 @@ PROJECT_LIST = re.compile(
 
 
 class Assistant:
-    def __init__(self, db_path="jarvis.db", model="qwen2.5:3b", llm=None):
+    def __init__(self, db_path="jarvis.db", model="qwen2.5:3b", llm=None, use_conversation_core=False):
         self.modes = ModeController()
         self.dialogue = Dialogue(db_path)
         self.action_audit = ActionAudit(db_path)
         self.action_dialogue = ActionDialogue(WindowsActions(audit_store=self.action_audit))
         self.llm = llm if llm is not None else LocalLLM(model=model)
         self.conversations = ConversationStore(db_path)
+        self.conversation_core = (JarvisConversation(backend=self.llm, model=model)
+                                  if use_conversation_core else None)
         self.facts = FactStore(db_path)
         self.code_dialogue = CodeDraftDialogue(db_path)
         if hasattr(self.llm, "history") and hasattr(self.llm, "max_turns"):
@@ -114,7 +117,8 @@ class Assistant:
             )
         if self.modes.mode == 'chat':
             try:
-                reply = self.llm.ask(phrase)
+                reply = (self.conversation_core.ask(phrase) if self.conversation_core is not None
+                         else self.llm.ask(phrase))
             except RuntimeError as exc:
                 return str(exc)
             if reply:
@@ -175,6 +179,8 @@ class Assistant:
         self.dialogue.pending_project_id = None
         self.action_dialogue.close()
         self.code_dialogue.close()
+        if self.conversation_core is not None:
+            self.conversation_core.clear_all()
         if hasattr(self.llm, "clear_history"):
             self.llm.clear_history()
 
