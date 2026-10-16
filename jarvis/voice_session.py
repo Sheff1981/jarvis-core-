@@ -69,7 +69,10 @@ class VoiceSession:
                         continue
                     if activated:
                         self.active = True
-                        value = command
+                        # Keep the exact named greeting for Assistant.
+                        greeting = value.casefold().strip(" .,!?:;")
+                        value = ("привет джарвис" if greeting == "привет джарвис"
+                                 else command)
                     if self.require_wake:
                         self.active_until = now + self.idle_seconds
                     if value.casefold() in ("спи", "засыпай"):
