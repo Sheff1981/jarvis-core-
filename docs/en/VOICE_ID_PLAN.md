@@ -16,3 +16,6 @@ Goal: reject TV audio, other speakers and ambient conversations without cloud se
 - jarvis/speaker_gate.py: fail-closed SpeakerGate and SpeakerDecision contract.
 - tests/test_speaker_gate.py: unit coverage.
 **Not implemented yet:** actual enrollment, speaker embedding model, microphone integration, or reliable TV rejection. Do not mark this feature as delivered.
+
+## Integration package 2 (2026-10-16)
+VoiceInput now accepts optional speaker_gate, buffers up to 15 seconds of PCM16 per Vosk utterance, and verifies identity **before** forwarding text to VoiceSession. Missing verifier or failures deny the command. Disabled mode preserves current behavior. Tests cover owner acceptance and unknown-speaker rejection. **Important:** no real local speaker embedding model or owner enrollment exists yet; enabled without a verifier blocks every command. Do not enable by default or mark the product complete.
