@@ -225,5 +225,35 @@ class Projects:
                 raise sqlite3.DatabaseError("Backup integrity check failed")
         return str(target)
 
+    @staticmethod
+    def restore_backup(source, destination):
+        """Restore a validated SQLite backup to a new, non-existing destination."""
+        source_path = Path(source)
+        target = Path(destination)
+        if not source_path.is_file():
+            raise ValueError("Backup source does not exist")
+        if source_path.resolve() == target.resolve():
+            raise ValueError("Restore destination must differ from backup source")
+        if not target.parent.is_dir() or target.exists():
+            raise ValueError("Restore destination must be a new file in an existing directory")
+        try:
+            with sqlite3.connect(f"file:{source_path.resolve().as_posix()}?mode=ro",
+                                 uri=True) as source_db:
+                if source_db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+                    raise sqlite3.DatabaseError("Backup integrity check failed")
+                tables = {row[0] for row in source_db.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'")}
+                if "projects" not in tables:
+                    raise sqlite3.DatabaseError("Backup is not a JARVIS projects database")
+                with sqlite3.connect(str(target)) as target_db:
+                    source_db.backup(target_db)
+                    if target_db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+                        raise sqlite3.DatabaseError("Restored database integrity check failed")
+        except Exception:
+            if target.exists():
+                target.unlink()
+            raise
+        return str(target)
+
     def close(self):
         self.connection.close()
