@@ -50,3 +50,7 @@ Dialogue supports Russian commands to defer/list ideas and record decisions with
 
 ## 2026-10-16 — Save checkpoints through Dialogue
 Added explicit `контрольная точка: stage; task; status; next step; blockers (optional)` command with status validation and SQLite persistence (2311b93). Added restart-persistence and invalid-input tests (8c35ef7). CI for this commit awaits confirmation.
+
+
+## 2026-10-16 — Explicit backup restore
+Added `Projects.restore_backup(source, destination)`: validates SQLite integrity and the projects table, restores only to a new path, refuses overwrite, and cleans partial output on failure (cf002f6). Added restore/validation regression test (c9fd67c). CI awaits confirmation.
