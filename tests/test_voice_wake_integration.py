@@ -194,6 +194,20 @@ class VoiceWakeIntegrationTests(unittest.TestCase):
             finally:
                 second.close()
 
+    def test_microphone_capture_failure_emits_error_and_stops(self):
+        class BrokenInput:
+            def listen(self, callback, stop_event, should_listen):
+                raise OSError("synthetic microphone unavailable")
+
+        assistant = FakeAssistant()
+        events = []
+        voice = VoiceSession(assistant, BrokenInput(), require_wake=True)
+        voice.run(lambda kind, value: events.append((kind, value)))
+        self.assertTrue(voice.stop_event.is_set())
+        self.assertTrue(voice.capture_finished.is_set())
+        self.assertIn(("error", "synthetic microphone unavailable"), events)
+        self.assertEqual(assistant.received, [])
+
     def test_wake_expires_after_idle_timeout(self):
         assistant = FakeAssistant()
         ticks = iter([0, 10, 311, 312])
