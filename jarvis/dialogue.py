@@ -77,6 +77,26 @@ class Dialogue:
                     f"Подтверждение: {checkpoint['evidence'] or 'нет'}. "
                     f"Блокеры: {checkpoint['blockers'] or 'нет'}. "
                     f"Следующий шаг: {checkpoint['next_step'] or 'не определён'}.")
+        checkpoint_match = re.fullmatch(
+            r"(?:джарвис[, ]+)?контрольная точка\\s*:\\s*(.+)",
+            text, flags=re.I)
+        if checkpoint_match:
+            projects = self.projects.list()
+            if not projects:
+                return "Сначала создай проект, к которому относится контрольная точка."
+            parts = [part.strip() for part in checkpoint_match.group(1).split(";")]
+            if len(parts) not in (4, 5) or any(not part for part in parts[:4]):
+                return ("Формат: контрольная точка: этап; задача; статус "
+                        "(planned/running/blocked/done); следующий шаг; блокеры (необязательно).")
+            stage, task, status, next_step = parts[:4]
+            blockers = parts[4] if len(parts) == 5 else ""
+            try:
+                self.projects.checkpoint(projects[0]["id"], stage=stage, task=task,
+                    status=status.casefold(), last_action="checkpoint saved via dialogue",
+                    next_step=next_step, blockers=blockers)
+            except ValueError:
+                return "Неизвестный статус. Используй planned, running, blocked или done."
+            return f"Контрольная точка сохранена для проекта {projects[0]['name']}."
         idea_match = re.fullmatch(
             r"(?:джарвис[, ]+)?(?:идея на потом|отложи идею)\\s+(.+)",
             text, flags=re.I)
