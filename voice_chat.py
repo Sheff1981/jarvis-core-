@@ -61,6 +61,8 @@ def main():
                         help="Disable Qwen3 reasoning in Ollama for quicker voice replies")
     parser.add_argument("--cpu-only", action="store_true",
                         help="Run Ollama on CPU with a low-memory profile (no CUDA)")
+    parser.add_argument("--vad-diagnostics", action="store_true",
+                        help="Opt in to energy VAD activity counters; never filters Vosk audio")
     parser.add_argument("--diagnostics", action="store_true",
                         help="Print voice and Ollama latency measurements")
     parser.add_argument("--tray", action="store_true", help="Show a system tray with mute and exit")
@@ -126,7 +128,8 @@ def main():
             # One wake gate in VoiceSession. Wrapping WakeAssistant here used to
             # consume the wake phrase twice, dropping the first user command.
             session = VoiceSession(
-                assistant, VoiceInput(args.model), controller=controller,
+                assistant, VoiceInput(args.model, vad_diagnostics=args.vad_diagnostics),
+                controller=controller,
                 require_wake=not args.always_listen,
             )
 
@@ -144,6 +147,10 @@ def main():
                             print("JARVIS timing: assistant={}ms tts_total={}ms".format(
                                 timings.get("assistant_ms", "n/a"),
                                 tts_ms if tts_ms is not None else "disabled"), flush=True)
+                            if args.vad_diagnostics:
+                                print("JARVIS VAD: active_frames={} total_frames={}".format(
+                                    session.input_device.vad_activity_frames,
+                                    session.input_device.vad_total_frames), flush=True)
                             # Avoid presenting metrics from a previous local command as current.
                             if timings.get("llm_used"):
                                 metrics = getattr(assistant.llm, "last_metrics", None)
