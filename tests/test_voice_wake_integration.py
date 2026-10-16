@@ -222,6 +222,20 @@ class VoiceWakeIntegrationTests(unittest.TestCase):
         self.assertEqual(sum(kind == "answer" for kind, _ in events), 10)
         self.assertFalse(any(kind == "error" for kind, _ in events))
 
+    def test_capture_error_survives_speech_queue_cleanup(self):
+        class InputWithFailure:
+            def listen(self, callback, stop_event, should_listen):
+                callback("джарвис проверка")
+                raise OSError("synthetic capture failure after speech")
+
+        assistant = FakeAssistant()
+        events = []
+        voice = VoiceSession(assistant, InputWithFailure(), require_wake=True)
+        voice.run(lambda kind, value: events.append((kind, value)))
+        self.assertEqual(assistant.received, ["проверка"])
+        self.assertIn(("error", "synthetic capture failure after speech"), events)
+        self.assertTrue(voice.stop_event.is_set())
+
     def test_wake_expires_after_idle_timeout(self):
         assistant = FakeAssistant()
         ticks = iter([0, 10, 311, 312])
