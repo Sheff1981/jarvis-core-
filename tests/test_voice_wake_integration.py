@@ -167,6 +167,33 @@ class VoiceWakeIntegrationTests(unittest.TestCase):
         second.run(lambda *args: None)
         self.assertEqual(assistant.received, ["заверши", "снова"])
 
+    def test_conversation_history_restored_on_new_assistant(self):
+        class HistoryLLM:
+            def __init__(self):
+                self.history = []
+                self.max_turns = 2
+
+            def ask(self, prompt):
+                return "Ответ на: " + prompt
+
+        with tempfile.TemporaryDirectory() as folder:
+            db_path = str(Path(folder) / "history.db")
+            first_llm = HistoryLLM()
+            first = Assistant(db_path, llm=first_llm)
+            try:
+                first.conversations.append_exchange("первый вопрос", "первый ответ")
+            finally:
+                first.close()
+            second_llm = HistoryLLM()
+            second = Assistant(db_path, llm=second_llm)
+            try:
+                self.assertEqual(second_llm.history, [
+                    {"role": "user", "content": "первый вопрос"},
+                    {"role": "assistant", "content": "первый ответ"},
+                ])
+            finally:
+                second.close()
+
     def test_wake_expires_after_idle_timeout(self):
         assistant = FakeAssistant()
         ticks = iter([0, 10, 311, 312])
