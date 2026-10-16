@@ -260,6 +260,35 @@ class VoiceWakeIntegrationTests(unittest.TestCase):
         self.assertEqual(assistant.received, ["первая команда"])
         self.assertFalse(any(kind == "error" for kind, _ in events))
 
+    def test_next_utterance_after_answer_is_accepted(self):
+        class TwoTurnInput:
+            def __init__(self):
+                self.callback = None
+
+            def listen(self, callback, stop_event, should_listen):
+                self.callback = callback
+                callback("джарвис первая команда")
+
+        class TwoTurnAssistant(FakeAssistant):
+            def respond(self, phrase):
+                self.received.append(phrase)
+                return "Понял."
+
+        input_device = TwoTurnInput()
+        assistant = TwoTurnAssistant()
+        events = []
+        voice = VoiceSession(assistant, input_device, require_wake=True)
+
+        def on_event(kind, value):
+            events.append((kind, value))
+            if kind == "answer" and value == "Понял." and len(assistant.received) == 1:
+                # Speech delivered while feedback is active must be rejected.
+                input_device.callback("фраза во время озвучивания")
+
+        voice.run(on_event)
+        self.assertEqual(assistant.received, ["первая команда"])
+        self.assertFalse(voice.busy_event.is_set())
+
     def test_wake_expires_after_idle_timeout(self):
         assistant = FakeAssistant()
         ticks = iter([0, 10, 311, 312])
