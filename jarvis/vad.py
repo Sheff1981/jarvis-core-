@@ -85,3 +85,38 @@ class AudioFrameBuffer:
     @property
     def pending_bytes(self):
         return len(self._pending)
+
+
+class SpeechActivityTracker:
+    """Debounce noisy VAD decisions with attack and release frame counts.
+
+    True means an active audio segment, not guaranteed human speech.
+    """
+
+    def __init__(self, start_frames=2, stop_frames=12):
+        if (type(start_frames) is not int or start_frames < 1 or
+                type(stop_frames) is not int or stop_frames < 1):
+            raise ValueError("start_frames and stop_frames must be positive integers")
+        self.start_frames = start_frames
+        self.stop_frames = stop_frames
+        self.reset()
+
+    def reset(self):
+        self.active = False
+        self._speech_run = 0
+        self._silence_run = 0
+
+    def update(self, detected: bool) -> bool:
+        if type(detected) is not bool:
+            raise TypeError("VAD decision must be boolean")
+        if detected:
+            self._silence_run = 0
+            self._speech_run += 1
+            if self._speech_run >= self.start_frames:
+                self.active = True
+        else:
+            self._speech_run = 0
+            self._silence_run += 1
+            if self._silence_run >= self.stop_frames:
+                self.active = False
+        return self.active
