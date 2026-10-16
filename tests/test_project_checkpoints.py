@@ -4,6 +4,7 @@ import tempfile
 import unittest
 
 from jarvis.projects import Projects
+from jarvis.conversation_memory import ConversationMemory
 
 
 class ProjectCheckpointTests(unittest.TestCase):
@@ -21,6 +22,27 @@ class ProjectCheckpointTests(unittest.TestCase):
             self.assertEqual(checkpoint["stage"], "Memory")
             self.assertEqual(checkpoint["next_step"], "restart")
             self.assertEqual(restored.list()[0]["next_step"], "restart")
+            restored.close()
+
+    def test_backup_restore_shared_sqlite_and_legacy_schema(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "source.db")
+            backup = os.path.join(tmp, "backup.db")
+            store = Projects(path)
+            project_id = store.add("Project", "old step")
+            memory = ConversationMemory(path)
+            memory.append("user", "Remember this")
+            memory.close()
+            store.checkpoint(project_id, stage="Stage", task="Task",
+                             status="done", evidence="confirmed", next_step="next")
+            store.backup(backup)
+            store.close()
+            restored = Projects(backup)
+            self.assertEqual(restored.latest_checkpoint(project_id)["evidence"], "confirmed")
+            self.assertEqual(restored.list()[0]["next_step"], "next")
+            history = ConversationMemory(backup)
+            self.assertEqual(history.recent()[0]["content"], "Remember this")
+            history.close()
             restored.close()
 
     def test_invalid_and_missing_project_do_not_write(self):
