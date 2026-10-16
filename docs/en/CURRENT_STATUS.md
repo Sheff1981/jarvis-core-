@@ -28,3 +28,12 @@ Audit wake_word → VoiceSession → Assistant → Ollama → Piper and add/fix 
 
 ## Target architecture (owner decision, 2026-10-16)
 JARVIS CORE's long-term objective is its own neural network and native engines for language processing, memory, learning, and dialogue. Qwen/Ollama are temporary prototype components, not the target architecture. Native trained weights and engines have not yet been implemented. The current active task remains unchanged: complete and validate the voice core without breaking existing functions.
+
+## N0 progress checkpoint — 2026-10-16
+- Ten sequential utterances: CI #1043, Windows/Ubuntu success.
+- Microphone failure: CI #1041, Windows/Ubuntu success.
+- TTS exception handling: 6c6403b; next-response Piper failure regression: 2fefe03; CI #1047 Windows/Ubuntu jobs passed.
+- Safe update checklist: 7fbc653; CI #1049 Windows/Ubuntu success.
+- Bilingual logs updated: edff334, 6a85de0.
+- N0 NOT ACCEPTED: physical Windows 10 Vosk/Piper/Ollama test, resource metrics, and acceptance record remain outstanding.
+- Single next action: only after the owner says “Выгружаем”, back up and update D:\\JARVIS-test using PowerShell, then complete docs/ru/VOICE_N0_ACCEPTANCE.md.
