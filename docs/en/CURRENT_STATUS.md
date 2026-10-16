@@ -13,7 +13,7 @@ Stabilize the existing conversational and voice core; do not add features.
 
 ## Incomplete / unverified
 - End-to-end voice test on the actual Windows laptop after recent changes.
-- Whether the wake phrase “Привет, Джарвис” reaches Assistant correctly through VoiceSession.
+- The “Привет, Джарвис” path through VoiceSession to Assistant has an integration test and passed CI run #1000 on Windows and Ubuntu; physical laptop verification remains outstanding.
 - Unified memory design: ConversationStore, Dialogue, Brain and PrivateSessionJournal overlap.
 - GitHub–laptop–server delivery; server deployment is not verified.
 - Custom trained voice and LoRA are NOT implemented.
