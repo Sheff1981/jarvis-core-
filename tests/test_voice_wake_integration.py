@@ -289,6 +289,41 @@ class VoiceWakeIntegrationTests(unittest.TestCase):
         self.assertEqual(assistant.received, ["первая команда"])
         self.assertFalse(voice.busy_event.is_set())
 
+    def test_followup_after_first_answer_without_second_wake(self):
+        class FollowupInput:
+            def __init__(self):
+                self.callback = None
+                self.ready_for_followup = False
+
+            def listen(self, callback, stop_event, should_listen):
+                self.callback = callback
+                callback("джарвис первая команда")
+                # Wait until the first response has finished processing.
+                while not stop_event.is_set() and not self.ready_for_followup:
+                    stop_event.wait(0.001)
+                if not stop_event.is_set():
+                    callback("вторая команда")
+
+        class FollowupAssistant(FakeAssistant):
+            def respond(self, phrase):
+                self.received.append(phrase)
+                return "Ответ " + str(len(self.received))
+
+        input_device = FollowupInput()
+        assistant = FollowupAssistant()
+        events = []
+        voice = VoiceSession(assistant, input_device, require_wake=True)
+
+        def on_event(kind, value):
+            events.append((kind, value))
+            if kind == "answer" and value == "Ответ 1":
+                input_device.ready_for_followup = True
+
+        voice.run(on_event)
+        self.assertEqual(assistant.received, ["первая команда", "вторая команда"])
+        self.assertEqual([v for k, v in events if k == "answer"],
+                         ["Ответ 1", "Ответ 2"])
+
     def test_wake_expires_after_idle_timeout(self):
         assistant = FakeAssistant()
         ticks = iter([0, 10, 311, 312])
