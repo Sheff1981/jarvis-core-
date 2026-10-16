@@ -372,6 +372,20 @@ class VoiceWakeIntegrationTests(unittest.TestCase):
         self.assertTrue(voice.capture_finished.is_set())
         self.assertFalse(voice.busy_event.is_set())
 
+    def test_control_reply_callback_failure_stops_session(self):
+        assistant = FakeAssistant()
+        voice = VoiceSession(assistant, FakeInput(["джарвис"]),
+                             require_wake=True)
+
+        def broken_callback(kind, value):
+            if kind == "answer":
+                raise OSError("synthetic control reply failure")
+
+        with self.assertRaisesRegex(OSError, "control reply failure"):
+            voice.run(broken_callback)
+        self.assertTrue(voice.stop_event.is_set())
+        self.assertFalse(voice.busy_event.is_set())
+
     def test_wake_expires_after_idle_timeout(self):
         assistant = FakeAssistant()
         ticks = iter([0, 10, 311, 312])
