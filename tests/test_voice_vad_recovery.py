@@ -22,6 +22,11 @@ class FailingVAD:
         raise RuntimeError("simulated VAD failure")
 
 
+class ResetFailingVAD(FailingVAD):
+    def reset(self):
+        raise RuntimeError("simulated VAD reset failure")
+
+
 class FakeRecognizer:
     def __init__(self, model, rate):
         self.received = []
@@ -50,6 +55,38 @@ class FakeStream:
 
 
 class VoiceVADRecoveryTests(unittest.TestCase):
+    def test_vad_reset_failure_preserves_vosk_recognition(self):
+        with tempfile.TemporaryDirectory() as directory:
+            stop = threading.Event()
+            heard = []
+            voice = VoiceInput(directory, vad_diagnostics=True)
+            fake_vosk = types.SimpleNamespace(
+                Model=lambda path: object(), KaldiRecognizer=FakeRecognizer)
+            fake_sd = types.SimpleNamespace(
+                CallbackStop=type("CallbackStop", (Exception,), {}),
+                RawInputStream=lambda **kwargs: FakeStream(kwargs["callback"], stop))
+            with (patch.dict(sys.modules, {"vosk": fake_vosk, "sounddevice": fake_sd}),
+                  patch("jarvis.vad.VADStream", ResetFailingVAD)):
+                voice.listen(heard.append, stop)
+            self.assertEqual(heard, ["проверка микрофона"])
+            self.assertEqual(voice.vad_error, "simulated VAD reset failure")
+
+    def test_vad_setup_failure_preserves_vosk_recognition(self):
+        with tempfile.TemporaryDirectory() as directory:
+            stop = threading.Event()
+            heard = []
+            voice = VoiceInput(directory, vad_diagnostics=True)
+            fake_vosk = types.SimpleNamespace(
+                Model=lambda path: object(), KaldiRecognizer=FakeRecognizer)
+            fake_sd = types.SimpleNamespace(
+                CallbackStop=type("CallbackStop", (Exception,), {}),
+                RawInputStream=lambda **kwargs: FakeStream(kwargs["callback"], stop))
+            with (patch.dict(sys.modules, {"vosk": fake_vosk, "sounddevice": fake_sd}),
+                  patch("jarvis.vad.VADStream", side_effect=RuntimeError("VAD unavailable"))):
+                voice.listen(heard.append, stop)
+            self.assertEqual(heard, ["проверка микрофона"])
+            self.assertEqual(voice.vad_error, "VAD unavailable")
+
     def test_vad_crash_preserves_vosk_recognition(self):
         with tempfile.TemporaryDirectory() as directory:
             stop = threading.Event()
