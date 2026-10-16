@@ -38,6 +38,7 @@ class Dialogue:
         if not text:
             return "Я слушаю."
         if normalized in ("стоп", "джарвис стоп", "джарвис, стоп", "выход"):
+            self.pending_delete_project_id = None
             self.pending_project_id = None
             self.awaiting_project_name = False
             self.session.clear()
@@ -49,6 +50,7 @@ class Dialogue:
             self.session.clear()
             return "История разговора удалена из локальной памяти."
         if normalized in ("отмена", "не запоминай", "джарвис отмена"):
+            self.pending_delete_project_id = None
             self.pending_project_id = None
             self.awaiting_project_name = False
             return "Хорошо, ожидающее уточнение отменено."
@@ -114,6 +116,9 @@ class Dialogue:
                 return "Подтверждение не совпало. Удаление отменено."
             self.projects.delete_project(expected_id, confirm=True)
             return f"Проект «{expected['name']}» удалён. История разговоров сохранена."
+        if self.pending_delete_project_id is not None:
+            self.pending_delete_project_id = None
+            return "Подтверждение не получено. Удаление отменено; при необходимости начни команду заново."
         checkpoint_match = re.fullmatch(
             r"(?:джарвис[, ]+)?контрольная точка\\s*:\\s*(.+)",
             text, flags=re.I)
