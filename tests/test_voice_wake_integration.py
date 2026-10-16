@@ -326,6 +326,34 @@ class VoiceWakeIntegrationTests(unittest.TestCase):
         self.assertEqual([v for k, v in events if k == "answer"],
                          ["Ответ 1", "Ответ 2"])
 
+    def test_control_replies_block_microphone_feedback(self):
+        class FeedbackInput:
+            def __init__(self):
+                self.callback = None
+
+            def listen(self, callback, stop_event, should_listen):
+                self.callback = callback
+                callback("джарвис")
+                callback("спи")
+
+        assistant = FakeAssistant()
+        input_device = FeedbackInput()
+        voice = VoiceSession(assistant, input_device, require_wake=True)
+        gate_during_answers = []
+
+        def on_event(kind, value):
+            if kind == "answer":
+                gate_during_answers.append((value, voice.busy_event.is_set()))
+                input_device.callback("джарвис команда из динамиков")
+
+        voice.run(on_event)
+        self.assertEqual(gate_during_answers, [
+            ("Слушаю.", True),
+            ("Перехожу в режим ожидания.", True),
+        ])
+        self.assertEqual(assistant.received, [])
+        self.assertFalse(voice.busy_event.is_set())
+
     def test_wake_expires_after_idle_timeout(self):
         assistant = FakeAssistant()
         ticks = iter([0, 10, 311, 312])
