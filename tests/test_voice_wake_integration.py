@@ -122,6 +122,35 @@ class VoiceWakeIntegrationTests(unittest.TestCase):
         voice.run(lambda *args: None)
         self.assertEqual(assistant.received, [])
 
+    def test_stop_response_ends_session(self):
+        class StopAssistant(FakeAssistant):
+            def respond(self, phrase):
+                self.received.append(phrase)
+                return "Останавливаюсь."
+
+        assistant = StopAssistant()
+        voice = VoiceSession(assistant, FakeInput([
+            "джарвис заверши работу", "джарвис ещё команда",
+        ]), require_wake=True)
+        voice.run(lambda *args: None)
+        self.assertEqual(assistant.received, ["заверши работу"])
+        self.assertTrue(voice.stop_event.is_set())
+
+    def test_assistant_failure_emits_error_and_stops(self):
+        class BrokenAssistant(FakeAssistant):
+            def respond(self, phrase):
+                raise RuntimeError("synthetic failure")
+
+        events = []
+        voice = VoiceSession(BrokenAssistant(), FakeInput([
+            "джарвис тест",
+        ]), require_wake=True)
+        voice.run(lambda kind, value: events.append((kind, value)))
+        self.assertTrue(voice.stop_event.is_set())
+        self.assertTrue(any(kind == "error" and "synthetic failure" in value
+                            for kind, value in events))
+        self.assertFalse(voice.busy_event.is_set())
+
     def test_wake_expires_after_idle_timeout(self):
         assistant = FakeAssistant()
         ticks = iter([0, 10, 311, 312])
