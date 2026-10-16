@@ -33,3 +33,9 @@ Memory after restart: NOT VERIFIED
 Recovery: NOT VERIFIED
 Decision: N0 NOT ACCEPTED — physical E2E pending.
 Next: laptop validation after owner says “Выгружаем”.
+
+
+## Automated verification freshness — 2026-10-16
+- Latest Memory Core functional commit: c801dc4; GitHub Actions #1403 (run 38923733530): Windows and Ubuntu success, full Python test workflow.
+- This CI confirms the automated suite for the current code but does not replace physical Vosk/Piper/Ollama end-to-end testing on the laptop.
+- Checkpoint/idea/decision/export commands are available in Dialogue. Their integration into the VoiceSession path is not confirmed; do not treat them as voice commands before verifying the route.
