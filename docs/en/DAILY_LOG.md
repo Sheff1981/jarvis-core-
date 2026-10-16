@@ -54,3 +54,7 @@ Added explicit `контрольная точка: stage; task; status; next ste
 
 ## 2026-10-16 — Explicit backup restore
 Added `Projects.restore_backup(source, destination)`: validates SQLite integrity and the projects table, restores only to a new path, refuses overwrite, and cleans partial output on failure (cf002f6). Added restore/validation regression test (c9fd67c). CI awaits confirmation.
+
+
+## 2026-10-16 — Dialogue project export and deletion
+Added Russian commands for exact-name project export and deletion gated by a separate confirmation; mismatched confirmation cancels deletion (3d01a19). Tests cover JSON export, mismatch protection and conversation-history preservation (c81fd92). CI run #1393 is in progress.
