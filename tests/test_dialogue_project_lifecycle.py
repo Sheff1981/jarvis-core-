@@ -18,6 +18,19 @@ class DialogueProjectLifecycleTests(unittest.TestCase):
                              "Не найден ровно один проект с таким названием.")
             dialogue.close()
 
+    def test_cancel_and_unrelated_input_expire_pending_delete(self):
+        with tempfile.TemporaryDirectory() as directory:
+            dialogue = Dialogue(db_path=os.path.join(directory, "memory.db"))
+            dialogue.projects.add("JARVIS")
+            dialogue.respond("удали проект JARVIS")
+            self.assertIn("отменено", dialogue.respond("отмена"))
+            self.assertIn("Нет ожидающего", dialogue.respond(
+                "подтверждаю удаление проекта JARVIS"))
+            dialogue.respond("удали проект JARVIS")
+            self.assertIn("Удаление отменено", dialogue.respond("привет"))
+            self.assertEqual(len(dialogue.projects.list()), 1)
+            dialogue.close()
+
     def test_delete_requires_matching_explicit_confirmation_and_preserves_history(self):
         with tempfile.TemporaryDirectory() as directory:
             path = os.path.join(directory, "memory.db")
