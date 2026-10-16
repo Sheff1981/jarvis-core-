@@ -46,3 +46,7 @@ CI #1357: Windows and Ubuntu success (b7d2ecf). CURRENT_STATUS RU/EN reconciled 
 
 ## 2026-10-16 — Dialogue access to deferred ideas
 Dialogue supports Russian commands to defer/list ideas and record decisions without modifying the active next step (bcdd927). Restart and missing-project regression tests added (df57c9a). Latest CI and physical voice testing remain unverified.
+
+
+## 2026-10-16 — Save checkpoints through Dialogue
+Added explicit `контрольная точка: stage; task; status; next step; blockers (optional)` command with status validation and SQLite persistence (2311b93). Added restart-persistence and invalid-input tests (8c35ef7). CI for this commit awaits confirmation.
