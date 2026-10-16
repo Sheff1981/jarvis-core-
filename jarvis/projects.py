@@ -28,6 +28,22 @@ class Projects:
             next_step TEXT NOT NULL DEFAULT '',
             created_at TEXT NOT NULL
         )""")
+        self.connection.execute("""CREATE TABLE IF NOT EXISTS project_decisions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id TEXT NOT NULL REFERENCES projects(id),
+            decision TEXT NOT NULL,
+            rationale TEXT NOT NULL DEFAULT '',
+            evidence TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL
+        )""")
+        self.connection.execute("""CREATE TABLE IF NOT EXISTS project_ideas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id TEXT NOT NULL REFERENCES projects(id),
+            idea TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'queued'
+                CHECK(status IN ('queued','accepted','rejected')),
+            created_at TEXT NOT NULL
+        )""")
         self.connection.commit()
 
     def add(self, name, next_step=""):
@@ -101,6 +117,63 @@ class Projects:
         keys = ("id","stage","task","status","last_action","evidence",
                 "blockers","next_step","created_at")
         return dict(zip(keys,row))
+
+    def _require_project(self, project_id):
+        if self.connection.execute("SELECT 1 FROM projects WHERE id=?",
+                                   (project_id,)).fetchone() is None:
+            raise KeyError("Project not found")
+
+    @staticmethod
+    def _required_text(value):
+        if not isinstance(value, str) or not value.strip() or len(value) > 4096:
+            raise ValueError("Expected nonempty text up to 4096 characters")
+        return value.strip()
+
+    def record_decision(self, project_id, decision, *, rationale="", evidence=""):
+        decision = self._required_text(decision)
+        if not all(isinstance(x, str) and len(x) <= 4096 for x in (rationale, evidence)):
+            raise ValueError("Invalid decision metadata")
+        with self.connection:
+            self._require_project(project_id)
+            cursor = self.connection.execute(
+                """INSERT INTO project_decisions(project_id,decision,rationale,evidence,created_at)
+                VALUES (?,?,?,?,?)""",
+                (project_id,decision,rationale,evidence,datetime.now(timezone.utc).isoformat()))
+        return cursor.lastrowid
+
+    def decisions(self, project_id):
+        self._require_project(project_id)
+        return [dict(zip(("id","decision","rationale","evidence","created_at"), row))
+                for row in self.connection.execute(
+                    """SELECT id,decision,rationale,evidence,created_at FROM project_decisions
+                    WHERE project_id=? ORDER BY id""", (project_id,))]
+
+    def queue_idea(self, project_id, idea):
+        idea = self._required_text(idea)
+        with self.connection:
+            self._require_project(project_id)
+            cursor = self.connection.execute(
+                "INSERT INTO project_ideas(project_id,idea,created_at) VALUES (?,?,?)",
+                (project_id,idea,datetime.now(timezone.utc).isoformat()))
+        return cursor.lastrowid
+
+    def ideas(self, project_id):
+        self._require_project(project_id)
+        return [dict(zip(("id","idea","status"), row))
+                for row in self.connection.execute(
+                    "SELECT id,idea,status FROM project_ideas WHERE project_id=? ORDER BY id",
+                    (project_id,))]
+
+    def resolve_idea(self, project_id, idea_id, status):
+        if status not in ("accepted", "rejected"):
+            raise ValueError("Invalid idea disposition")
+        with self.connection:
+            self._require_project(project_id)
+            cursor = self.connection.execute(
+                """UPDATE project_ideas SET status=? WHERE id=? AND project_id=?
+                AND status='queued'""", (status,idea_id,project_id))
+            if cursor.rowcount != 1:
+                raise ValueError("Idea not found or already resolved")
 
     def backup(self, destination):
         """Consistent SQLite snapshot including all tables in the shared database."""
