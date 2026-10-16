@@ -32,6 +32,7 @@ class VoiceIDWorker:
         self.stop_requested = threading.Event()
         self.error = None
         self.dropped_chunks = 0
+        self.received_chunks = 0
         self.accepted = 0
         self.rejected = 0
         self.thread = None
@@ -44,6 +45,7 @@ class VoiceIDWorker:
                 return False
             try:
                 self.queue.put_nowait((self._generation, bytes(audio)))
+                self.received_chunks += 1
                 return True
             except queue.Full:
                 self.dropped_chunks += 1
