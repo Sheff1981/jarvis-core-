@@ -19,3 +19,6 @@ Goal: reject TV audio, other speakers and ambient conversations without cloud se
 
 ## Integration package 2 (2026-10-16)
 VoiceInput now accepts optional speaker_gate, buffers up to 15 seconds of PCM16 per Vosk utterance, and verifies identity **before** forwarding text to VoiceSession. Missing verifier or failures deny the command. Disabled mode preserves current behavior. Tests cover owner acceptance and unknown-speaker rejection. **Important:** no real local speaker embedding model or owner enrollment exists yet; enabled without a verifier blocks every command. Do not enable by default or mark the product complete.
+
+## Package 3 — local profile (2026-10-16)
+Added jarvis/speaker_profile.py and tests/test_speaker_profile.py. The profile requires at least three vectors **provided by an external embedding extractor**, normalizes and averages them, then atomically saves JSON with model_id. Loading, incompatible model detection, deletion and cosine comparison are implemented. Threshold 0.78 is provisional and needs calibration against real positive and negative samples. Raw audio is not persisted here. **There is no real speaker embedding extractor, audio enrollment or TV rejection yet**; synthetic test vectors are not biometric verification. Treat profile data as sensitive and keep it out of GitHub.
