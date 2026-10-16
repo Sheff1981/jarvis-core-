@@ -8,7 +8,7 @@ from jarvis.local_llm import LocalLLM
 
 class JarvisConversation:
     def __init__(self, *, model="qwen3:1.7b", dictionary=None, max_sessions=4,
-                 max_turns=4, cpu_only=True, memory_store=None, save_history=False):
+                 max_turns=4, cpu_only=True, memory_store=None, save_history=False, backend=None):
         if type(max_sessions) is not int or not 1 <= max_sessions <= 32:
             raise ValueError("Invalid session limit")
         self.model = model
@@ -23,6 +23,7 @@ class JarvisConversation:
         if save_history and memory_store is None:
             raise ValueError("Saving requires an explicit memory store")
         self._sessions = {}
+        self._backend = backend
 
     def _get_session(self, session_id):
         if not isinstance(session_id, str) or not re.fullmatch(r"[a-zA-Z0-9_-]{1,48}", session_id):
@@ -30,8 +31,8 @@ class JarvisConversation:
         if session_id not in self._sessions:
             if len(self._sessions) >= self.max_sessions:
                 raise RuntimeError("Session limit reached; close an existing session")
-            backend = LocalLLM(model=self.model, cpu_only=self.cpu_only,
-                               max_turns=self.max_turns, think=False)
+            backend = self._backend if session_id == "owner" and self._backend is not None else LocalLLM(
+                model=self.model, cpu_only=self.cpu_only, max_turns=self.max_turns, think=False)
             backend.mode = "chat"
             if self.save_history and session_id == "owner":
                 backend.history = self.memory_store.recent(self.max_turns)
