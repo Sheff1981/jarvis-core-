@@ -1,4 +1,5 @@
 import sqlite3
+from contextlib import closing
 import tempfile
 import unittest
 from pathlib import Path
@@ -39,7 +40,7 @@ class DialogueCorpusTests(unittest.TestCase):
         self.assertEqual(len(DialogueCorpus(self.path).export_approved()), 1)
 
     def test_approval_cannot_be_forged_with_sql_null(self):
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db:
             with self.assertRaises(sqlite3.IntegrityError):
                 db.execute("INSERT INTO dialogue_corpus(digest,user_text,assistant_text,source,consent,created_at) VALUES('x','a','b','owner',0,'now')")
 
