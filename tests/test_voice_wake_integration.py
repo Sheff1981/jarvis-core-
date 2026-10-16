@@ -99,6 +99,29 @@ class VoiceWakeIntegrationTests(unittest.TestCase):
                 voice.run(lambda *args: None)
                 self.assertEqual(assistant.received, ["привет джарвис"])
 
+    def test_sleep_requires_new_wake_phrase(self):
+        assistant = FakeAssistant()
+        events = []
+        voice = VoiceSession(assistant, FakeInput([
+            "джарвис проверка", "спи", "это нельзя выполнять",
+            "джарвис продолжай",
+        ]), require_wake=True)
+        voice.run(lambda kind, value: events.append((kind, value)))
+        self.assertEqual(assistant.received, ["проверка", "продолжай"])
+        self.assertIn(("answer", "Перехожу в режим ожидания."), events)
+        assistant.action_dialogue.close.assert_called_once()
+
+    def test_muted_microphone_discards_commands(self):
+        assistant = FakeAssistant()
+        controller = MagicMock()
+        controller.muted = True
+        controller.exit_requested = False
+        voice = VoiceSession(assistant, FakeInput([
+            "джарвис проверь",
+        ]), controller=controller, require_wake=True)
+        voice.run(lambda *args: None)
+        self.assertEqual(assistant.received, [])
+
     def test_wake_expires_after_idle_timeout(self):
         assistant = FakeAssistant()
         ticks = iter([0, 10, 311, 312])
