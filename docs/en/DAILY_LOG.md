@@ -8,3 +8,5 @@
 **Stopping point:** before wake-word → VoiceSession → Assistant → Ollama → Piper integration audit.
 **Next action:** inspect this path and regression tests; do not add new subsystems.
 **Real laptop testing:** not performed in this session.
+
+**2026-10-16 addendum (time not recorded):** preserved “Привет, Джарвис” through VoiceSession (5211767); added regression test (7b2f428). GitHub Actions for latest commit not yet verified; real microphone test not performed. **Next:** confirm CI and run a laptop voice test.
