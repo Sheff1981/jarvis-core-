@@ -15,15 +15,19 @@ CASES = (
 )
 
 
-def evaluate(ask):
+def evaluate(ask, reset=None):
     """Run a deterministic smoke benchmark against an injected chat callable."""
     if not callable(ask):
         raise TypeError("ask must be callable")
+    if reset is not None and not callable(reset):
+        raise TypeError("reset must be callable")
     results = []
     for case in CASES:
         replies = []
         error = None
         try:
+            if reset is not None:
+                reset()
             for turn in case["turns"]:
                 reply = ask(turn)
                 if not isinstance(reply, str) or not reply.strip():
@@ -44,3 +48,12 @@ def write_report(report, path):
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     return target
+
+
+def evaluate_local(model="qwen3:1.7b", *, cpu_only=True, timeout=45):
+    """Run real offline Ollama dialogue tests; no external API or weight changes."""
+    from jarvis.local_llm import LocalLLM
+    llm = LocalLLM(model=model, cpu_only=cpu_only, timeout=timeout,
+                   max_turns=4, think=False)
+    llm.mode = "chat"
+    return evaluate(llm.ask, reset=llm.clear_history)
