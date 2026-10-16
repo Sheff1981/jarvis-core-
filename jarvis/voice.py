@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 class VoiceInput:
-    def __init__(self, model_path, sample_rate=16000, vad_diagnostics=False):
+    def __init__(self, model_path, sample_rate=16000, vad_diagnostics=False, speaker_gate=None):
         path = Path(model_path)
         if not path.is_dir():
             raise FileNotFoundError(f"Vosk model folder not found: {path}")
@@ -13,6 +13,7 @@ class VoiceInput:
         self.model_path = str(path)
         self.sample_rate = sample_rate
         self.vad_diagnostics = bool(vad_diagnostics)
+        self.speaker_gate = speaker_gate
         self.vad_activity_frames = 0
         self.vad_total_frames = 0
         self.vad_error = None
@@ -49,9 +50,12 @@ class VoiceInput:
                     vad = None
 
             callback_error = []
+            speaker_audio = bytearray()
+            speaker_overflow = False
+            max_speaker_bytes = self.sample_rate * 2 * 15
 
             def callback(indata, frames, time_info, status):
-                nonlocal vad
+                nonlocal vad, speaker_overflow
                 if stop_event.is_set() or (
                     should_listen is not None and not should_listen()
                 ):
@@ -67,9 +71,21 @@ class VoiceInput:
                             # Diagnostics must never prevent Vosk transcription.
                             self.vad_error = str(exc)
                             vad = None
+                    if self.speaker_gate is not None and self.speaker_gate.enabled:
+                        if len(speaker_audio) + len(audio) > max_speaker_bytes:
+                            speaker_overflow = True
+                        else:
+                            speaker_audio.extend(audio)
                     if recognizer.AcceptWaveform(audio):
                         phrase = json.loads(recognizer.Result()).get("text", "").strip()
-                        if phrase and not stop_event.is_set() and (
+                        speaker_ok = True
+                        if self.speaker_gate is not None and self.speaker_gate.enabled:
+                            speaker_ok = (not speaker_overflow and
+                                          self.speaker_gate.verify(bytes(speaker_audio),
+                                                                   self.sample_rate).accepted)
+                            speaker_audio.clear()
+                            speaker_overflow = False
+                        if phrase and speaker_ok and not stop_event.is_set() and (
                             should_listen is None or should_listen()
                         ):
                             on_text(phrase)
