@@ -72,3 +72,11 @@ Requirements source: JARVIS CORE ENGINEERING SPECIFICATION, Stage 03 «Memory an
 - Dialogue command regression tests: 8c35ef7, df57c9a.
 - Explicit SQLite `restore_backup`: cf002f6; portable SQLite path fix: f29be4b; restore regression test: c9fd67c.
 - Last confirmed CI #1357 applies to b7d2ecf, not these later changes. CI for the latest changes is pending; Stage 03 remains NOT ACCEPTED until all jobs pass.
+
+
+### Memory Core — dialogue operations (2026-10-16)
+- Dialogue can save a checkpoint with `контрольная точка: stage; task; status; next step; blockers (optional)` (2311b93).
+- Deferred ideas and decisions use Russian commands (bcdd927); project export and two-step confirmed deletion are available through Dialogue (3d01a19).
+- Regression tests cover checkpoint, idea/decision and export/delete: 8c35ef7, df57c9a, c81fd92.
+- CI #1386 for restore portability fix: Windows and Ubuntu success. CI #1393 for dialogue export/delete: Ubuntu success, Windows still running at time of writing.
+- Do not close Stage 03 until CI #1393 finishes and the latest final commit is rechecked.
