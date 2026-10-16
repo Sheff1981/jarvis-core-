@@ -45,6 +45,28 @@ class ProjectCheckpointTests(unittest.TestCase):
             history.close()
             restored.close()
 
+    def test_explicit_restore_to_new_database(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = os.path.join(tmp, "source.db")
+            backup = os.path.join(tmp, "backup.db")
+            target = os.path.join(tmp, "restored.db")
+            store = Projects(source)
+            project_id = store.add("Restore target", "resume")
+            store.checkpoint(project_id, stage="Memory", task="Restore",
+                             status="done", next_step="continue")
+            store.backup(backup)
+            store.close()
+            Projects.restore_backup(backup, target)
+            restored = Projects(target)
+            self.assertEqual(restored.list()[0]["name"], "Restore target")
+            self.assertEqual(restored.latest_checkpoint(project_id)["next_step"], "continue")
+            restored.close()
+            with self.assertRaises(ValueError):
+                Projects.restore_backup(backup, target)
+            with self.assertRaises(ValueError):
+                Projects.restore_backup(os.path.join(tmp, "missing.db"),
+                                        os.path.join(tmp, "other.db"))
+
     def test_invalid_and_missing_project_do_not_write(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = Projects(os.path.join(tmp, "memory.db"))
