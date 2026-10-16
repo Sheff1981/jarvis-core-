@@ -47,3 +47,7 @@ JARVIS CORE's long-term objective is its own neural network and native engines f
 
 ## Memory Core — 2026-10-16
 Added project_checkpoints to the existing Projects SQLite database with checkpoint/latest_checkpoint methods. Commits 471084f and 756631d. CI verification and main dialogue integration are not yet confirmed. The contour is NOT accepted. Next action: verify CI and integrate with Dialogue.
+
+
+## Memory Core acceptance update — 2026-10-16
+Dialogue integration: ccf7cf7; recovery tests: 55a8d74; CI #1331 SUCCESS (before backup changes). SQLite backup: 511eb58; backup/restore test: 4fca822. Final CI for 4fca822 is not yet confirmed. Software contour awaits final acceptance; hardware validation is separate.
