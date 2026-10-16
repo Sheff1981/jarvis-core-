@@ -1,10 +1,13 @@
 """Integration checks: voice uses one wake gate and expires after inactivity."""
 import sys
+import tempfile
+from pathlib import Path
 import unittest
 from unittest.mock import MagicMock, patch
 
 import voice_chat
 from jarvis.voice_session import VoiceSession
+from jarvis.assistant import Assistant
 
 
 class FakeInput:
@@ -63,6 +66,28 @@ class VoiceWakeIntegrationTests(unittest.TestCase):
         ]), require_wake=True)
         voice.run(lambda *args: None)
         self.assertEqual(assistant.received, ["привет джарвис"])
+
+    def test_named_greeting_uses_real_assistant_local_reply(self):
+        class StubLLM:
+            def __init__(self):
+                self.prompts = []
+
+            def ask(self, prompt):
+                self.prompts.append(prompt)
+                return "Не должно вызываться"
+
+        with tempfile.TemporaryDirectory() as folder:
+            llm = StubLLM()
+            assistant = Assistant(str(Path(folder) / "voice.db"), llm=llm)
+            events = []
+            try:
+                voice = VoiceSession(assistant, FakeInput(["Привет, Джарвис"]),
+                                     require_wake=True)
+                voice.run(lambda kind, value: events.append((kind, value)))
+                self.assertIn(("answer", "Привет, Саня. Я заговорил!"), events)
+                self.assertEqual(llm.prompts, [])
+            finally:
+                assistant.close()
 
     def test_wake_expires_after_idle_timeout(self):
         assistant = FakeAssistant()
