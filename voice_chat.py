@@ -151,6 +151,9 @@ def main():
                                 print("JARVIS VAD: active_frames={} total_frames={}".format(
                                     session.input_device.vad_activity_frames,
                                     session.input_device.vad_total_frames), flush=True)
+                                if session.input_device.vad_error:
+                                    print("JARVIS VAD: диагностика отключена:",
+                                          session.input_device.vad_error, flush=True)
                             # Avoid presenting metrics from a previous local command as current.
                             if timings.get("llm_used"):
                                 metrics = getattr(assistant.llm, "last_metrics", None)
