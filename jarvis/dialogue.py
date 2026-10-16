@@ -77,6 +77,33 @@ class Dialogue:
                     f"Подтверждение: {checkpoint['evidence'] or 'нет'}. "
                     f"Блокеры: {checkpoint['blockers'] or 'нет'}. "
                     f"Следующий шаг: {checkpoint['next_step'] or 'не определён'}.")
+        idea_match = re.fullmatch(
+            r"(?:джарвис[, ]+)?(?:идея на потом|отложи идею)\\s+(.+)",
+            text, flags=re.I)
+        decision_match = re.fullmatch(
+            r"(?:джарвис[, ]+)?(?:запиши решение|мы решили)\\s+(.+)",
+            text, flags=re.I)
+        if idea_match or decision_match:
+            projects = self.projects.list()
+            if not projects:
+                return "Сначала создай проект, к которому относится запись."
+            project = projects[0]
+            if idea_match:
+                idea = idea_match.group(1).strip()
+                self.projects.queue_idea(project["id"], idea)
+                return (f"Идея сохранена для проекта {project['name']}. "
+                        "Текущую задачу не меняю.")
+            decision = decision_match.group(1).strip()
+            self.projects.record_decision(project["id"], decision)
+            return f"Решение сохранено для проекта {project['name']}."
+        if normalized in ("отложенные идеи", "список идей"):
+            projects = self.projects.list()
+            if not projects:
+                return "Нет сохранённых проектов."
+            ideas = self.projects.ideas(projects[0]["id"])
+            queued = [item["idea"] for item in ideas if item["status"] == "queued"]
+            return ("Отложенные идеи: " + "; ".join(queued)
+                    if queued else "Отложенных идей нет.")
         if re.fullmatch(r"(?:джарвис[, ]+)?(?:запомни проект|добавь проект)", text, flags=re.I):
             self.pending_project_id = None
             self.awaiting_project_name = True
