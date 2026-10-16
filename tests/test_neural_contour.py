@@ -43,7 +43,7 @@ class NeuralContourTests(unittest.TestCase):
         self.controller.activate("dialogue", "1", self.evaluation)
         def during_inference(prompt):
             with self.assertRaises(RuntimeError):
-                self.controller.unload("dialogue", "2") if False else self.controller.unload("dialogue", "1")
+                self.controller.unload("dialogue", "1")
             return prompt
         self.runtime.attach("dialogue", "1", CallableAdapter(during_inference))
         self.assertEqual(self.runtime.infer("dialogue", "ok").text, "ok")
