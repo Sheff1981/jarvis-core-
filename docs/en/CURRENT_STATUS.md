@@ -51,3 +51,17 @@ Added project_checkpoints to the existing Projects SQLite database with checkpoi
 
 ## Memory Core acceptance update — 2026-10-16
 Dialogue integration: ccf7cf7; recovery tests: 55a8d74; CI #1331 SUCCESS (before backup changes). SQLite backup: 511eb58; backup/restore test: 4fca822. Final CI for 4fca822 is not yet confirmed. Software contour awaits final acceptance; hardware validation is separate.
+
+
+## Documentation reconciliation — 2026-10-16 (Stage 03)
+Requirements source: JARVIS CORE ENGINEERING SPECIFICATION, Stage 03 «Memory and project continuity». Earlier entries above are historical snapshots, not the latest status.
+- Durable checkpoints and restart recovery: 471084f, 756631d, ccf7cf7, 55a8d74.
+- SQLite backup and restore test: 511eb58, 4fca822.
+- Decision journal and deferred idea queue: a03f630, 96489e2.
+- JSON project export and confirmed deletion: ae13729, b6504d6.
+- Legacy schema migration and repeat initialization: b7d2ecf.
+- GitHub Actions #1357 (38920294025): success; ubuntu-24.04 success, windows-latest success at b7d2ecf.
+- Limitation: idea queue is available via Projects API, but the end-to-end voice interaction for proposing a new idea is not demonstrated. Backup restore was tested by opening the snapshot; a complete disaster recovery procedure and physical device acceptance are not verified.
+- Decision: documentation reconciliation COMPLETE; Stage 03 NOT ACCEPTED pending remaining acceptance criteria, device testing where required and owner approval. Voice N0 remains NOT ACCEPTED.
+- Native Neural Core has NO trained proprietary model weights; an architecture specification does not establish a trained neural network.
+- Do not modify main or update the laptop until the owner says «Выгружаем».
