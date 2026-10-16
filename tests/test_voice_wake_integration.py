@@ -301,6 +301,8 @@ class VoiceWakeIntegrationTests(unittest.TestCase):
                 # Wait until the first response has finished processing.
                 while not stop_event.is_set() and not self.ready_for_followup:
                     stop_event.wait(0.001)
+                while not stop_event.is_set() and not should_listen():
+                    stop_event.wait(0.001)
                 if not stop_event.is_set():
                     callback("вторая команда")
 
