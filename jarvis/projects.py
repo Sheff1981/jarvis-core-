@@ -1,5 +1,6 @@
 """Local project tracker for JARVIS. No network access or paid API."""
 import sqlite3
+import json
 from pathlib import Path
 import uuid
 from datetime import datetime, timezone
@@ -174,6 +175,40 @@ class Projects:
                 AND status='queued'""", (status,idea_id,project_id))
             if cursor.rowcount != 1:
                 raise ValueError("Idea not found or already resolved")
+
+    def export_project(self, project_id):
+        """Portable project JSON, excluding private journal and conversation turns."""
+        self._require_project(project_id)
+        row = self.connection.execute(
+            "SELECT id,name,status,next_step,updated_at FROM projects WHERE id=?",
+            (project_id,)).fetchone()
+        checkpoints = self.connection.execute(
+            """SELECT stage,task,status,last_action,evidence,blockers,next_step,created_at
+            FROM project_checkpoints WHERE project_id=? ORDER BY id""",
+            (project_id,)).fetchall()
+        return json.dumps({
+            "schema_version": 1,
+            "project": dict(zip(("id","name","status","next_step","updated_at"),row)),
+            "checkpoints": [dict(zip(("stage","task","status","last_action",
+                "evidence","blockers","next_step","created_at"), item))
+                for item in checkpoints],
+            "decisions": self.decisions(project_id),
+            "ideas": self.ideas(project_id),
+        }, ensure_ascii=False, sort_keys=True)
+
+    def delete_project(self, project_id, *, confirm=False):
+        """Require explicit confirmation; preserve unrelated shared data."""
+        if confirm is not True:
+            raise PermissionError("Explicit confirmation required")
+        with self.connection:
+            self._require_project(project_id)
+            self.connection.execute("DELETE FROM project_checkpoints WHERE project_id=?",
+                                    (project_id,))
+            self.connection.execute("DELETE FROM project_decisions WHERE project_id=?",
+                                    (project_id,))
+            self.connection.execute("DELETE FROM project_ideas WHERE project_id=?",
+                                    (project_id,))
+            self.connection.execute("DELETE FROM projects WHERE id=?", (project_id,))
 
     def backup(self, destination):
         """Consistent SQLite snapshot including all tables in the shared database."""
