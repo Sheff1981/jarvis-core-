@@ -1,4 +1,7 @@
 import unittest
+import tempfile
+from pathlib import Path
+from jarvis.conversation_store import ConversationStore
 from unittest.mock import patch
 from jarvis.conversation_core import JarvisConversation
 
@@ -29,6 +32,34 @@ class ConversationCoreTests(unittest.TestCase):
         prompt = backend.return_value.ask.call_args.args[0]
         self.assertIn("Старое значение", prompt)
         self.assertIn('"historical": true', prompt)
+
+    @patch("jarvis.conversation_core.LocalLLM")
+    def test_existing_memory_is_opt_in(self, backend):
+        backend.return_value.ask.return_value = "Ответ"
+        with tempfile.TemporaryDirectory() as folder:
+            store = ConversationStore(Path(folder) / "chat.db")
+            try:
+                core = JarvisConversation(memory_store=store, save_history=True)
+                core.ask("Привет")
+                self.assertEqual(len(store.recent()), 2)
+                core.close_session()
+                core.ask("Снова")
+                self.assertEqual(len(store.recent()), 4)
+            finally:
+                store.close()
+
+    @patch("jarvis.conversation_core.LocalLLM")
+    def test_failed_answer_is_not_saved(self, backend):
+        backend.return_value.ask.side_effect = RuntimeError("Offline")
+        with tempfile.TemporaryDirectory() as folder:
+            store = ConversationStore(Path(folder) / "chat.db")
+            try:
+                core = JarvisConversation(memory_store=store, save_history=True)
+                with self.assertRaises(RuntimeError):
+                    core.ask("Привет")
+                self.assertEqual(store.recent(), [])
+            finally:
+                store.close()
 
     def test_rejects_bad_session_and_empty_input(self):
         core = JarvisConversation()
