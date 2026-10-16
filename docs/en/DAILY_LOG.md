@@ -58,3 +58,7 @@ Added `Projects.restore_backup(source, destination)`: validates SQLite integrity
 
 ## 2026-10-16 — Dialogue project export and deletion
 Added Russian commands for exact-name project export and deletion gated by a separate confirmation; mismatched confirmation cancels deletion (3d01a19). Tests cover JSON export, mismatch protection and conversation-history preservation (c81fd92). CI run #1393 is in progress.
+
+
+## 2026-10-16 — Deletion confirmation safety
+Review found pending deletion could survive an unrelated utterance. Fixed: cancel, stop and any unrelated input clear the pending deletion; added regression test (0bb6f90, c801dc4). CI for this fix is pending.
