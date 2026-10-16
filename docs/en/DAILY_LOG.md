@@ -12,3 +12,5 @@
 **2026-10-16 addendum (time not recorded):** preserved “Привет, Джарвис” through VoiceSession (5211767); added regression test (7b2f428). GitHub Actions for latest commit not yet verified; real microphone test not performed. **Next:** confirm CI and run a laptop voice test.
 
 **2026-10-16 — CI verification:** GitHub Actions run #1000 for commit a7a707c: Windows success, Ubuntu 24.04 success. The greeting fix passed automated tests. Microphone, Ollama and Piper have not been tested on the laptop. Next: physical voice test.
+
+**2026-10-16 — N0 checkpoint:** bilingual acceptance protocols added (2adad7f, 66a72e7). GitHub Actions #1015 passed on Windows and Ubuntu 24.04. Physical laptop E2E has not been performed. Next: prepare and test code remotely, then run laptop acceptance after 20:00 when available.
