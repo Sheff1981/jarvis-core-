@@ -56,6 +56,14 @@ class VoiceWakeIntegrationTests(unittest.TestCase):
         self.assertEqual(assistant.received, ["привет", "как дела", "проверка"])
         assistant.action_dialogue.close.assert_called_once()
 
+    def test_named_greeting_reaches_assistant_unchanged(self):
+        assistant = FakeAssistant()
+        voice = VoiceSession(assistant, FakeInput([
+            "Привет, Джарвис",
+        ]), require_wake=True)
+        voice.run(lambda *args: None)
+        self.assertEqual(assistant.received, ["привет джарвис"])
+
     def test_wake_expires_after_idle_timeout(self):
         assistant = FakeAssistant()
         ticks = iter([0, 10, 311, 312])
