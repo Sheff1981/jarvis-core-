@@ -38,7 +38,7 @@ class DictionaryIndex:
         if input_path.stat().st_size > 100 * 1024 * 1024:
             raise ValueError("Input file too large")
         count = 0
-        with input_path.open(encoding="utf-8") as stream, closing(sqlite3.connect(self.path)) as db:
+        with input_path.open(encoding="utf-8") as stream, closing(sqlite3.connect(self.path)) as db, db:
             for line in stream:
                 if not line.strip():
                     continue
