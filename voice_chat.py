@@ -149,7 +149,8 @@ def main():
                                 metrics = getattr(assistant.llm, "last_metrics", None)
                                 if metrics:
                                     print("JARVIS Ollama metrics:", metrics, flush=True)
-                    except RuntimeError as exc:
+                    except Exception as exc:
+                        # A TTS failure must not terminate the microphone worker.
                         print("JARVIS: Ошибка голоса:", exc, flush=True)
                 elif kind == "error":
                     print("JARVIS: Ошибка микрофона:", value, flush=True)
