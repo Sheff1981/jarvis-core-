@@ -70,3 +70,7 @@ GitHub Actions #1403 passed: Windows and Ubuntu success for c801dc4. Automated r
 
 ## 2026-10-16 — Memory Core recovery runbook
 Added bilingual backup and restore instructions: docs/ru/MEMORY_CORE_RECOVERY.md and docs/en/MEMORY_CORE_RECOVERY.md. The runbook covers integrity checks, overwrite protection and automated-test limits; physical rehearsal remains deferred until “Выгружаем”.
+
+
+## Roadmap reconciliation — 2026-10-16
+Memory Core software passed CI #1403 on Windows/Ubuntu; persistence, deferred ideas, migration, export and recovery are covered by tests, and bilingual recovery runbooks are in place. Full acceptance is not claimed without physical rehearsal/owner sign-off. NNC spec order: N0 voice-core hardware acceptance; N1/N2/N3 precede first MicroModel N4. Single next action: wait for “Выгружаем” and run N0.
