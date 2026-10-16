@@ -100,6 +100,9 @@ class VoiceIDWorker:
 
     def stop(self):
         self.stop_requested.set()
+        with self._queue_lock:
+            self._generation += 1
+            self.invalidated.set()
         if self.thread is not None:
             self.thread.join(timeout=2)
             if self.thread.is_alive():
