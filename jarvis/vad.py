@@ -25,3 +25,33 @@ def validate_pcm16_frame(frame: bytes, sample_rate: int, frame_ms: int) -> None:
     expected = sample_rate * frame_ms // 1000 * 2
     if len(frame) != expected:
         raise ValueError(f"PCM frame must be exactly {expected} bytes")
+
+class EnergyVAD(SpeechDetector):
+    """Low-cost energy gate for optional use; not a neural speech detector.
+
+    It detects sufficiently loud audio, including noise. It is not suitable
+    as a standalone wake-word or command recognizer.
+    """
+
+    def __init__(self, threshold=450, sample_rate=16000, frame_ms=20):
+        if isinstance(threshold, bool) or not isinstance(threshold, (int, float)):
+            raise ValueError("threshold must be a non-negative finite number")
+        import math
+        if not math.isfinite(threshold) or threshold < 0:
+            raise ValueError("threshold must be a non-negative finite number")
+        validate_pcm16_frame(bytes(sample_rate * frame_ms // 1000 * 2),
+                             sample_rate, frame_ms)
+        self.threshold = threshold
+        self.sample_rate = sample_rate
+        self.frame_ms = frame_ms
+
+    def is_speech(self, pcm16_frame: bytes) -> bool:
+        import array
+        import math
+        import sys
+        validate_pcm16_frame(pcm16_frame, self.sample_rate, self.frame_ms)
+        samples = array.array("h")
+        samples.frombytes(pcm16_frame)
+        if sys.byteorder != "little":
+            samples.byteswap()
+        return math.sqrt(sum(sample * sample for sample in samples) / len(samples)) >= self.threshold
