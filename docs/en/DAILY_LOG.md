@@ -26,3 +26,7 @@
 
 ## 2026-10-16 — Memory Core
 Added durable project checkpoints to existing SQLite (471084f) and regression tests (756631d). CI and target-environment recovery have not been confirmed. Schema extension is non-destructive; private journal unchanged. Next action: verify CI and Dialogue integration.
+
+
+## 2026-10-16 — Memory Core continuation
+Integrated Dialogue (ccf7cf7), restart tests (55a8d74), CI #1331 success. Added SQLite backup (511eb58), shared-database restore test (4fca822). Final CI unconfirmed. Main branch and laptop unchanged.
