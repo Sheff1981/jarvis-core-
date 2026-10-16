@@ -62,6 +62,21 @@ class Dialogue:
                 f"{i}. {p['name']}. Следующий шаг: {p['next_step'] or 'не определён'}."
                 for i, p in enumerate(projects, 1)
             )
+        if normalized in ("продолжим проект", "на чём остановились", "на чем остановились"):
+            projects = self.projects.list()
+            if not projects:
+                return "Нет сохранённых незавершённых проектов."
+            project = projects[0]
+            checkpoint = self.projects.latest_checkpoint(project["id"])
+            if checkpoint is None:
+                return (f"Проект: {project['name']}. Следующий шаг: "
+                        f"{project['next_step'] or 'не определён'}.")
+            return (f"Проект: {project['name']}. Этап: {checkpoint['stage']}. "
+                    f"Задача: {checkpoint['task']}. Статус: {checkpoint['status']}. "
+                    f"Последнее действие: {checkpoint['last_action'] or 'не указано'}. "
+                    f"Подтверждение: {checkpoint['evidence'] or 'нет'}. "
+                    f"Блокеры: {checkpoint['blockers'] or 'нет'}. "
+                    f"Следующий шаг: {checkpoint['next_step'] or 'не определён'}.")
         if re.fullmatch(r"(?:джарвис[, ]+)?(?:запомни проект|добавь проект)", text, flags=re.I):
             self.pending_project_id = None
             self.awaiting_project_name = True
