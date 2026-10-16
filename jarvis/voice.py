@@ -22,6 +22,9 @@ class VoiceInput:
         from vosk import Model, KaldiRecognizer
 
         model = Model(self.model_path)
+        # Counters describe only this capture run, never a previous run.
+        self.vad_activity_frames = 0
+        self.vad_total_frames = 0
         vad = None
         if self.vad_diagnostics:
             from jarvis.vad import VADStream
