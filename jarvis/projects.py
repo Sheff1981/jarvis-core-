@@ -1,5 +1,6 @@
 """Local project tracker for JARVIS. No network access or paid API."""
 import sqlite3
+from pathlib import Path
 import uuid
 from datetime import datetime, timezone
 
@@ -100,6 +101,21 @@ class Projects:
         keys = ("id","stage","task","status","last_action","evidence",
                 "blockers","next_step","created_at")
         return dict(zip(keys,row))
+
+    def backup(self, destination):
+        """Consistent SQLite snapshot including all tables in the shared database."""
+        target = Path(destination)
+        source = self.connection.execute("PRAGMA database_list").fetchone()[2]
+        if not source or target.resolve() == Path(source).resolve():
+            raise ValueError("Backup destination must differ from source")
+        if not target.parent.is_dir() or target.exists():
+            raise ValueError("Backup destination must be a new file in an existing directory")
+        with sqlite3.connect(str(target)) as backup_db:
+            self.connection.backup(backup_db)
+            result = backup_db.execute("PRAGMA integrity_check").fetchone()[0]
+            if result != "ok":
+                raise sqlite3.DatabaseError("Backup integrity check failed")
+        return str(target)
 
     def close(self):
         self.connection.close()
