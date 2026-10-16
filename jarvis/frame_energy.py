@@ -1,9 +1,7 @@
-"""Lightweight energy detector for optional pre-ASR segmentation.
-
-This detector distinguishes signal energy, NOT speakers or speech from TV.
-Owner verification remains mandatory for every segmented utterance.
-"""
-import audioop
+"""Lightweight frame energy detector; not a speaker or speech classifier."""
+from array import array
+import math
+import sys
 
 
 class FrameEnergyDetector:
@@ -13,6 +11,11 @@ class FrameEnergyDetector:
         self.threshold = threshold
 
     def __call__(self, pcm16):
-        if len(pcm16) % 2:
+        if len(pcm16) % 2 or not pcm16:
             raise ValueError("invalid PCM16 frame")
-        return audioop.rms(pcm16, 2) >= self.threshold
+        values = array("h")
+        values.frombytes(pcm16)
+        if sys.byteorder != "little":
+            values.byteswap()
+        rms = math.sqrt(sum(x * x for x in values) / len(values))
+        return rms >= self.threshold
