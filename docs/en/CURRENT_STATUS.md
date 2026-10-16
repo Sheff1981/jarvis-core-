@@ -85,3 +85,11 @@ Requirements source: JARVIS CORE ENGINEERING SPECIFICATION, Stage 03 «Memory an
 ### CI confirmation — 2026-10-16
 - GitHub Actions #1403 (run 38923733530) for deletion-safety fix: Ubuntu 24.04 success, Windows success; commit c801dc4.
 - Automated Memory Core checks passed on Windows/Ubuntu at the latest functional commit. Laptop hardware testing and manual disaster-recovery procedure remain outstanding; software CI acceptance is confirmed, but full owner acceptance is not claimed.
+
+
+### Stage 03 and roadmap dependency decision — 2026-10-16
+- Stage 03 software criteria are covered: checkpoint persistence/recovery after restart and SQLite transfer; deferred ideas do not change next_step; legacy schema migration is tested; backup/restore targets a new file; export and confirmed deletion are isolated from conversation history.
+- CI #1403 for c801dc4: Windows and Ubuntu success. RU/EN recovery runbooks added: c06947d, b67a381.
+- Status: Memory Core software implementation and automated checks are complete. Physical laptop restore rehearsal and owner sign-off remain outstanding; do not claim full product sign-off.
+- Sequence from the source documents: N0 — physical voice-core acceptance; N1 — server training audit; N2 — unified memory/knowledge base; N3 — Dataset Factory; N4 — JARVIS MicroModel with its own tokenizer. Do not skip to N4.
+- Single next action: wait for “Выгружаем”, then perform the safe update and N0 Windows 10 protocol.
