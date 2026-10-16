@@ -15,6 +15,7 @@ class VoiceInput:
         self.vad_diagnostics = bool(vad_diagnostics)
         self.vad_activity_frames = 0
         self.vad_total_frames = 0
+        self.vad_error = None
 
     def listen(self, on_text, stop_event, should_listen=None):
         """Close input stream while gated; reset recognizer on each restart."""
@@ -27,8 +28,11 @@ class VoiceInput:
         self.vad_total_frames = 0
         vad = None
         if self.vad_diagnostics:
-            from jarvis.vad import VADStream
-            vad = VADStream(sample_rate=self.sample_rate)
+            try:
+                from jarvis.vad import VADStream
+                vad = VADStream(sample_rate=self.sample_rate)
+            except Exception as exc:
+                self.vad_error = str(exc)
         failures = 0
         while not stop_event.is_set():
             if should_listen is not None and not should_listen():
@@ -42,15 +46,21 @@ class VoiceInput:
             callback_error = []
 
             def callback(indata, frames, time_info, status):
+                nonlocal vad
                 if stop_event.is_set() or (
                     should_listen is not None and not should_listen()
                 ):
                     raise sd.CallbackStop()
                 try:
                     if vad is not None:
-                        decisions = vad.push(bytes(indata))
-                        self.vad_total_frames += len(decisions)
-                        self.vad_activity_frames += sum(decisions)
+                        try:
+                            decisions = vad.push(bytes(indata))
+                            self.vad_total_frames += len(decisions)
+                            self.vad_activity_frames += sum(decisions)
+                        except Exception as exc:
+                            # Diagnostics must never prevent Vosk transcription.
+                            self.vad_error = str(exc)
+                            vad = None
                     if recognizer.AcceptWaveform(bytes(indata)):
                         phrase = json.loads(recognizer.Result()).get("text", "").strip()
                         if phrase and not stop_event.is_set() and (
