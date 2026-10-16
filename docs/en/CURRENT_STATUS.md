@@ -65,3 +65,10 @@ Requirements source: JARVIS CORE ENGINEERING SPECIFICATION, Stage 03 «Memory an
 - Decision: documentation reconciliation COMPLETE; Stage 03 NOT ACCEPTED pending remaining acceptance criteria, device testing where required and owner approval. Voice N0 remains NOT ACCEPTED.
 - Native Neural Core has NO trained proprietary model weights; an architecture specification does not establish a trained neural network.
 - Do not modify main or update the laptop until the owner says «Выгружаем».
+
+
+### Memory Core — update after Dialogue integration (2026-10-16)
+- Russian dialogue commands for checkpoint creation, decision recording and deferred ideas: 2311b93, bcdd927.
+- Dialogue command regression tests: 8c35ef7, df57c9a.
+- Explicit SQLite `restore_backup`: cf002f6; portable SQLite path fix: f29be4b; restore regression test: c9fd67c.
+- Last confirmed CI #1357 applies to b7d2ecf, not these later changes. CI for the latest changes is pending; Stage 03 remains NOT ACCEPTED until all jobs pass.
