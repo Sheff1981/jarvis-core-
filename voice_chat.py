@@ -61,6 +61,12 @@ def main():
                         help="Disable Qwen3 reasoning in Ollama for quicker voice replies")
     parser.add_argument("--cpu-only", action="store_true",
                         help="Run Ollama on CPU with a low-memory profile (no CUDA)")
+    parser.add_argument("--voice-id-model-dir", default=None,
+                        help="Local ECAPA model directory; no network downloads")
+    parser.add_argument("--voice-id-profile", default=None,
+                        help="Private owner voice profile JSON")
+    parser.add_argument("--voice-id-threshold", type=float, default=None,
+                        help="Calibrated cosine threshold; required with Voice ID")
     parser.add_argument("--vad-diagnostics", action="store_true",
                         help="Opt in to energy VAD activity counters; never filters Vosk audio")
     parser.add_argument("--diagnostics", action="store_true",
@@ -77,6 +83,11 @@ def main():
         not args.piper_bin or not args.piper_voice
     ):
         parser.error("--tts piper requires --piper-bin and --piper-voice")
+    voice_id_values = (args.voice_id_model_dir, args.voice_id_profile, args.voice_id_threshold)
+    if any(v is not None for v in voice_id_values) and not all(v is not None for v in voice_id_values):
+        parser.error("Voice ID requires --voice-id-model-dir, --voice-id-profile and --voice-id-threshold")
+    if args.voice_id_threshold is not None and not 0 < args.voice_id_threshold <= 1:
+        parser.error("--voice-id-threshold must be between 0 (exclusive) and 1")
     piper_pacing = {}
     if args.piper_length_scale != 1.0:
         piper_pacing["piper_length_scale"] = args.piper_length_scale
@@ -127,8 +138,21 @@ def main():
                               **piper_pacing)
             # One wake gate in VoiceSession. Wrapping WakeAssistant here used to
             # consume the wake phrase twice, dropping the first user command.
+            speaker_gate = None
+            if args.voice_id_model_dir is not None:
+                from jarvis.speaker_ecapa import LocalECAPAExtractor
+                from jarvis.speaker_profile import SpeakerProfileStore, CosineSpeakerVerifier
+                from jarvis.speaker_gate import SpeakerGate
+                extractor = LocalECAPAExtractor(args.voice_id_model_dir)
+                store = SpeakerProfileStore(args.voice_id_profile)
+                if store.load(extractor.model_id) is None:
+                    raise RuntimeError("Voice ID profile missing; enrollment required")
+                verifier = CosineSpeakerVerifier(
+                    store, extractor, extractor.model_id, args.voice_id_threshold)
+                speaker_gate = SpeakerGate(checker=verifier, enabled=True)
             session = VoiceSession(
-                assistant, VoiceInput(args.model, vad_diagnostics=args.vad_diagnostics),
+                assistant, VoiceInput(args.model, vad_diagnostics=args.vad_diagnostics,
+                                      speaker_gate=speaker_gate),
                 controller=controller,
                 require_wake=not args.always_listen,
             )
