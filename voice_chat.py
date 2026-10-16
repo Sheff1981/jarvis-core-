@@ -61,6 +61,8 @@ def main():
                         help="Disable Qwen3 reasoning in Ollama for quicker voice replies")
     parser.add_argument("--cpu-only", action="store_true",
                         help="Run Ollama on CPU with a low-memory profile (no CUDA)")
+    parser.add_argument("--voice-id-pre-asr", action="store_true",
+                        help="Verify bounded speech segments before Vosk (experimental)")
     parser.add_argument("--voice-id-model-dir", default=None,
                         help="Local ECAPA model directory; no network downloads")
     parser.add_argument("--voice-id-profile", default=None,
@@ -86,6 +88,8 @@ def main():
     voice_id_values = (args.voice_id_model_dir, args.voice_id_profile, args.voice_id_threshold)
     if any(v is not None for v in voice_id_values) and not all(v is not None for v in voice_id_values):
         parser.error("Voice ID requires --voice-id-model-dir, --voice-id-profile and --voice-id-threshold")
+    if args.voice_id_pre_asr and not all(v is not None for v in voice_id_values):
+        parser.error("--voice-id-pre-asr requires complete Voice ID configuration")
     if args.voice_id_threshold is not None and not 0 < args.voice_id_threshold <= 1:
         parser.error("--voice-id-threshold must be between 0 (exclusive) and 1")
     piper_pacing = {}
@@ -152,7 +156,8 @@ def main():
                 speaker_gate = SpeakerGate(checker=verifier, enabled=True)
             session = VoiceSession(
                 assistant, VoiceInput(args.model, vad_diagnostics=args.vad_diagnostics,
-                                      speaker_gate=speaker_gate),
+                                      speaker_gate=speaker_gate,
+                                      pre_asr_voice_id=args.voice_id_pre_asr),
                 controller=controller,
                 require_wake=not args.always_listen,
             )
