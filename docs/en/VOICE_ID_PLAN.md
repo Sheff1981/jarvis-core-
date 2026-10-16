@@ -35,3 +35,6 @@ The microphone callback now queues PCM audio, while a background worker segments
 
 ## Package 7 — lifecycle hardening (2026-10-16)
 Added generation-based rejection of stale queued audio after overflow, queue invalidation on stop(), and tests/test_voice_id_worker_lifecycle.py. CI requires separate verification. An in-flight ECAPA call cannot be forcibly interrupted within the same Python process; post-inference checks block command delivery after stop.
+
+## Package 8 — segmentation robustness (2026-10-16)
+Added parameter validation and PCM16 sample alignment checks in utterance segmentation, plus tests/test_utterance_segmenter_edges.py for malformed input, fragmented frames and oversized speech. Default legacy behavior remains unchanged. CI and physical microphone acceptance are separate gates.
