@@ -30,3 +30,7 @@ Added durable project checkpoints to existing SQLite (471084f) and regression te
 
 ## 2026-10-16 — Memory Core continuation
 Integrated Dialogue (ccf7cf7), restart tests (55a8d74), CI #1331 success. Added SQLite backup (511eb58), shared-database restore test (4fca822). Final CI unconfirmed. Main branch and laptop unchanged.
+
+
+## 2026-10-16 — Memory Core, decision log and idea queue
+Added project_decisions and project_ideas to existing SQLite (a03f630), restart, project-isolation and active-task preservation tests (96489e2). CI for new commits awaits confirmation. Next: export/deletion and final acceptance.
