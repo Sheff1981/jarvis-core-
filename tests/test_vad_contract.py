@@ -27,6 +27,35 @@ class VADContractTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             validate_pcm16_frame(bytearray(320), 16000, 10)
 
+    def test_activity_tracker_requires_sustained_sound(self):
+        from jarvis.vad import SpeechActivityTracker
+        tracker = SpeechActivityTracker(start_frames=2, stop_frames=3)
+        self.assertFalse(tracker.update(True))
+        self.assertFalse(tracker.update(False))
+        self.assertFalse(tracker.update(True))
+        self.assertTrue(tracker.update(True))
+        self.assertTrue(tracker.update(False))
+        self.assertTrue(tracker.update(False))
+        self.assertFalse(tracker.update(False))
+
+    def test_activity_tracker_reset(self):
+        from jarvis.vad import SpeechActivityTracker
+        tracker = SpeechActivityTracker(start_frames=1, stop_frames=2)
+        self.assertTrue(tracker.update(True))
+        tracker.reset()
+        self.assertFalse(tracker.active)
+        self.assertFalse(tracker.update(False))
+
+    def test_activity_tracker_invalid_configuration(self):
+        from jarvis.vad import SpeechActivityTracker
+        for kwargs in ({"start_frames": 0}, {"stop_frames": 0},
+                       {"start_frames": True}, {"stop_frames": 1.5}):
+            with self.subTest(kwargs=kwargs):
+                with self.assertRaises(ValueError):
+                    SpeechActivityTracker(**kwargs)
+        with self.assertRaises(TypeError):
+            SpeechActivityTracker().update(1)
+
     def test_audio_frame_buffer_split_chunks(self):
         from jarvis.vad import AudioFrameBuffer
         buffer = AudioFrameBuffer()
