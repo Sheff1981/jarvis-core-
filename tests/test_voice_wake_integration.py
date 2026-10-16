@@ -208,6 +208,20 @@ class VoiceWakeIntegrationTests(unittest.TestCase):
         self.assertIn(("error", "synthetic microphone unavailable"), events)
         self.assertEqual(assistant.received, [])
 
+    def test_ten_sequential_dialogues_after_wake(self):
+        assistant = FakeAssistant()
+        phrases = ["джарвис проверка один"] + [
+            "диалог " + str(number) for number in range(2, 11)
+        ]
+        events = []
+        voice = VoiceSession(assistant, FakeInput(phrases), require_wake=True)
+        voice.run(lambda kind, value: events.append((kind, value)))
+        self.assertEqual(len(assistant.received), 10)
+        self.assertEqual(assistant.received[0], "проверка один")
+        self.assertEqual(assistant.received[-1], "диалог 10")
+        self.assertEqual(sum(kind == "answer" for kind, _ in events), 10)
+        self.assertFalse(any(kind == "error" for kind, _ in events))
+
     def test_wake_expires_after_idle_timeout(self):
         assistant = FakeAssistant()
         ticks = iter([0, 10, 311, 312])
