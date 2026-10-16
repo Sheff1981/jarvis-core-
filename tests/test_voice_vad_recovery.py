@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from jarvis.voice import VoiceInput
+from jarvis.speaker_gate import SpeakerGate
 
 
 class FailingVAD:
@@ -55,6 +56,40 @@ class FakeStream:
 
 
 class VoiceVADRecoveryTests(unittest.TestCase):
+    def test_unknown_speaker_does_not_reach_assistant(self):
+        with tempfile.TemporaryDirectory() as directory:
+            stop = threading.Event()
+            heard = []
+            voice = VoiceInput(directory, speaker_gate=SpeakerGate(enabled=True))
+            fake_vosk = types.SimpleNamespace(
+                Model=lambda path: object(), KaldiRecognizer=FakeRecognizer)
+            fake_sd = types.SimpleNamespace(
+                CallbackStop=type("CallbackStop", (Exception,), {}),
+                RawInputStream=lambda **kwargs: FakeStream(kwargs["callback"], stop))
+            with patch.dict(sys.modules, {"vosk": fake_vosk, "sounddevice": fake_sd}):
+                voice.listen(heard.append, stop)
+            self.assertEqual(heard, [])
+
+    def test_verified_owner_reaches_assistant(self):
+        with tempfile.TemporaryDirectory() as directory:
+            stop = threading.Event()
+            heard = []
+            seen = []
+            def verify(pcm, rate):
+                seen.append((len(pcm), rate))
+                return True
+            voice = VoiceInput(directory, speaker_gate=SpeakerGate(
+                checker=verify, enabled=True))
+            fake_vosk = types.SimpleNamespace(
+                Model=lambda path: object(), KaldiRecognizer=FakeRecognizer)
+            fake_sd = types.SimpleNamespace(
+                CallbackStop=type("CallbackStop", (Exception,), {}),
+                RawInputStream=lambda **kwargs: FakeStream(kwargs["callback"], stop))
+            with patch.dict(sys.modules, {"vosk": fake_vosk, "sounddevice": fake_sd}):
+                voice.listen(heard.append, stop)
+            self.assertEqual(heard, ["проверка микрофона"])
+            self.assertEqual(seen, [(8000, 16000)])
+
     def test_vad_reset_failure_preserves_vosk_recognition(self):
         with tempfile.TemporaryDirectory() as directory:
             stop = threading.Event()
