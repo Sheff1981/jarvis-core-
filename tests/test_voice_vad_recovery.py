@@ -60,8 +60,8 @@ class VoiceVADRecoveryTests(unittest.TestCase):
             fake_sd = types.SimpleNamespace(
                 CallbackStop=type("CallbackStop", (Exception,), {}),
                 RawInputStream=lambda **kwargs: FakeStream(kwargs["callback"], stop))
-            with patch.dict(sys.modules, {"vosk": fake_vosk, "sounddevice": fake_sd}), \\
-                    patch("jarvis.vad.VADStream", FailingVAD):
+            with (patch.dict(sys.modules, {"vosk": fake_vosk, "sounddevice": fake_sd}),
+                  patch("jarvis.vad.VADStream", FailingVAD)):
                 voice.listen(heard.append, stop)
             self.assertEqual(heard, ["проверка микрофона"])
             self.assertEqual(voice.vad_error, "simulated VAD failure")
