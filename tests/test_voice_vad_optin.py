@@ -14,6 +14,12 @@ class VoiceVADOptInTests(unittest.TestCase):
             self.assertEqual(voice.vad_activity_frames, 0)
             self.assertEqual(voice.vad_total_frames, 0)
 
+    def test_invalid_model_folder_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            missing = str(Path(directory) / "not-installed")
+            with self.assertRaises(FileNotFoundError):
+                VoiceInput(missing, vad_diagnostics=True)
+
     def test_explicit_diagnostics_enabled(self):
         with tempfile.TemporaryDirectory() as directory:
             voice = VoiceInput(directory, vad_diagnostics=True)
