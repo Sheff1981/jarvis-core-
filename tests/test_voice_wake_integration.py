@@ -354,6 +354,24 @@ class VoiceWakeIntegrationTests(unittest.TestCase):
         self.assertEqual(assistant.received, [])
         self.assertFalse(voice.busy_event.is_set())
 
+    def test_error_callback_failure_still_stops_microphone(self):
+        class BrokenAssistant(FakeAssistant):
+            def respond(self, phrase):
+                raise RuntimeError("synthetic assistant failure")
+
+        voice = VoiceSession(BrokenAssistant(),
+                             FakeInput(["джарвис проверка"]), require_wake=True)
+
+        def broken_callback(kind, value):
+            if kind == "error":
+                raise OSError("synthetic error reporter failure")
+
+        with self.assertRaisesRegex(OSError, "error reporter failure"):
+            voice.run(broken_callback)
+        self.assertTrue(voice.stop_event.is_set())
+        self.assertTrue(voice.capture_finished.is_set())
+        self.assertFalse(voice.busy_event.is_set())
+
     def test_wake_expires_after_idle_timeout(self):
         assistant = FakeAssistant()
         ticks = iter([0, 10, 311, 312])
