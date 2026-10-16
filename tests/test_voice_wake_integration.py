@@ -89,6 +89,16 @@ class VoiceWakeIntegrationTests(unittest.TestCase):
             finally:
                 assistant.close()
 
+    def test_named_greeting_punctuation_variants(self):
+        for greeting in ("Привет, Джарвис", "Привет Джарвис",
+                         "ПРИВЕТ, ДЖАРВИС!", "Привет,  Джарвис"):
+            with self.subTest(greeting=greeting):
+                assistant = FakeAssistant()
+                voice = VoiceSession(assistant, FakeInput([greeting]),
+                                     require_wake=True)
+                voice.run(lambda *args: None)
+                self.assertEqual(assistant.received, ["привет джарвис"])
+
     def test_wake_expires_after_idle_timeout(self):
         assistant = FakeAssistant()
         ticks = iter([0, 10, 311, 312])
