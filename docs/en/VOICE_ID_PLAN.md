@@ -38,3 +38,6 @@ Added generation-based rejection of stale queued audio after overflow, queue inv
 
 ## Package 8 — segmentation robustness (2026-10-16)
 Added parameter validation and PCM16 sample alignment checks in utterance segmentation, plus tests/test_utterance_segmenter_edges.py for malformed input, fragmented frames and oversized speech. Default legacy behavior remains unchanged. CI and physical microphone acceptance are separate gates.
+
+## Package 9 (2026-10-16)
+Added privacy-safe Voice ID status counters, and reject overlong speech until silence rather than rearming in the middle of a phrase. New status and long-speech tests cover these changes. Physical acceptance remains pending.
