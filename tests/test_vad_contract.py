@@ -27,6 +27,29 @@ class VADContractTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             validate_pcm16_frame(bytearray(320), 16000, 10)
 
+    def test_audio_frame_buffer_split_chunks(self):
+        from jarvis.vad import AudioFrameBuffer
+        buffer = AudioFrameBuffer()
+        self.assertEqual(buffer.push(bytes(200)), [])
+        self.assertEqual(buffer.pending_bytes, 200)
+        self.assertEqual(buffer.push(bytes(1080)), [bytes(640), bytes(640)])
+        self.assertEqual(buffer.pending_bytes, 0)
+
+    def test_audio_frame_buffer_reset_discards_partial_frame(self):
+        from jarvis.vad import AudioFrameBuffer
+        buffer = AudioFrameBuffer()
+        buffer.push(bytes(320))
+        buffer.reset()
+        self.assertEqual(buffer.pending_bytes, 0)
+        self.assertEqual(buffer.push(bytes(640)), [bytes(640)])
+
+    def test_audio_frame_buffer_rejects_partial_pcm_sample(self):
+        from jarvis.vad import AudioFrameBuffer
+        buffer = AudioFrameBuffer()
+        with self.assertRaises(ValueError):
+            buffer.push(bytes(3))
+        self.assertEqual(buffer.pending_bytes, 0)
+
     def test_energy_vad_silence_and_loud_audio(self):
         import struct
         vad = EnergyVAD(threshold=500)
