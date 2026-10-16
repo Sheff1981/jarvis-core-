@@ -32,3 +32,6 @@ Added jarvis/utterance_segmenter.py, jarvis/frame_energy.py and tests/test_pre_a
 
 ## Package 6 — background Voice ID worker (2026-10-16)
 The microphone callback now queues PCM audio, while a background worker segments utterances, verifies the speaker and runs Vosk. The queue is bounded; overflow invalidates the buffered segment instead of authorizing partial audio. This is opt-in and requires a configured Voice ID gate. New tests cover owner, other speaker and overflow. Physical microphone testing remains pending.
+
+## Package 7 — lifecycle hardening (2026-10-16)
+Added generation-based rejection of stale queued audio after overflow, queue invalidation on stop(), and tests/test_voice_id_worker_lifecycle.py. CI requires separate verification. An in-flight ECAPA call cannot be forcibly interrupted within the same Python process; post-inference checks block command delivery after stop.
