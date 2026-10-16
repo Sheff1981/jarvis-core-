@@ -66,3 +66,7 @@ Review found pending deletion could survive an unrelated utterance. Fixed: cance
 
 ## CI result — Memory Core, 2026-10-16
 GitHub Actions #1403 passed: Windows and Ubuntu success for c801dc4. Automated regression coverage for export/deletion and cancellation of pending deletion is green. Hardware acceptance and manual restore procedure remain outstanding.
+
+
+## 2026-10-16 — Memory Core recovery runbook
+Added bilingual backup and restore instructions: docs/ru/MEMORY_CORE_RECOVERY.md and docs/en/MEMORY_CORE_RECOVERY.md. The runbook covers integrity checks, overwrite protection and automated-test limits; physical rehearsal remains deferred until “Выгружаем”.
