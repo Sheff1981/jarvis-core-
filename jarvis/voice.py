@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 class VoiceInput:
-    def __init__(self, model_path, sample_rate=16000):
+    def __init__(self, model_path, sample_rate=16000, vad_diagnostics=False):
         path = Path(model_path)
         if not path.is_dir():
             raise FileNotFoundError(f"Vosk model folder not found: {path}")
@@ -12,6 +12,9 @@ class VoiceInput:
             raise ValueError("sample_rate must be positive")
         self.model_path = str(path)
         self.sample_rate = sample_rate
+        self.vad_diagnostics = bool(vad_diagnostics)
+        self.vad_activity_frames = 0
+        self.vad_total_frames = 0
 
     def listen(self, on_text, stop_event, should_listen=None):
         """Close input stream while gated; reset recognizer on each restart."""
@@ -19,6 +22,10 @@ class VoiceInput:
         from vosk import Model, KaldiRecognizer
 
         model = Model(self.model_path)
+        vad = None
+        if self.vad_diagnostics:
+            from jarvis.vad import VADStream
+            vad = VADStream(sample_rate=self.sample_rate)
         failures = 0
         while not stop_event.is_set():
             if should_listen is not None and not should_listen():
@@ -26,6 +33,8 @@ class VoiceInput:
                 continue
 
             recognizer = KaldiRecognizer(model, self.sample_rate)
+            if vad is not None:
+                vad.reset()
 
             callback_error = []
 
@@ -35,6 +44,10 @@ class VoiceInput:
                 ):
                     raise sd.CallbackStop()
                 try:
+                    if vad is not None:
+                        decisions = vad.push(bytes(indata))
+                        self.vad_total_frames += len(decisions)
+                        self.vad_activity_frames += sum(decisions)
                     if recognizer.AcceptWaveform(bytes(indata)):
                         phrase = json.loads(recognizer.Result()).get("text", "").strip()
                         if phrase and not stop_event.is_set() and (
