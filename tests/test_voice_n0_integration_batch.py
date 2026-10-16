@@ -15,8 +15,8 @@ class ScriptedInput:
                 return
             on_text(phrase)
             # Wait for the coordinator to consume the queued speech.
-            stop_event.wait(0.03)
-        stop_event.wait(0.15)
+            stop_event.wait(0.08)
+        stop_event.wait(0.3)
 
 
 class DialogueStub:
