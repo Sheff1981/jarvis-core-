@@ -120,3 +120,27 @@ class SpeechActivityTracker:
             if self._silence_run >= self.stop_frames:
                 self.active = False
         return self.active
+
+
+class VADStream:
+    """Combine fixed PCM frames, speech detector, and activity smoothing.
+
+    This opt-in component only reports audio activity; it does not discard
+    frames or change the Vosk recognizer's input.
+    """
+
+    def __init__(self, detector=None, sample_rate=16000, frame_ms=20,
+                 start_frames=2, stop_frames=12):
+        self.detector = detector if detector is not None else EnergyVAD(
+            sample_rate=sample_rate, frame_ms=frame_ms)
+        self.frames = AudioFrameBuffer(sample_rate, frame_ms)
+        self.tracker = SpeechActivityTracker(start_frames, stop_frames)
+
+    def push(self, chunk: bytes):
+        """Return one smoothed activity decision for each complete PCM frame."""
+        return [self.tracker.update(bool(self.detector.is_speech(frame)))
+                for frame in self.frames.push(chunk)]
+
+    def reset(self):
+        self.frames.reset()
+        self.tracker.reset()
