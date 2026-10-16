@@ -47,11 +47,13 @@ class VoiceInput:
                 continue
 
             recognizer = KaldiRecognizer(model, self.sample_rate)
-            segmenter = None
+            worker = None
             if self.pre_asr_voice_id:
-                from jarvis.utterance_segmenter import UtteranceSegmenter
-                from jarvis.frame_energy import FrameEnergyDetector
-                segmenter = UtteranceSegmenter(FrameEnergyDetector())
+                from jarvis.voice_id_worker import VoiceIDWorker
+                worker = VoiceIDWorker(self.speaker_gate,
+                    lambda: KaldiRecognizer(model, self.sample_rate),
+                    on_text, sample_rate=self.sample_rate,
+                    should_listen=should_listen)
             if vad is not None:
                 try:
                     vad.reset()
@@ -81,16 +83,8 @@ class VoiceInput:
                             # Diagnostics must never prevent Vosk transcription.
                             self.vad_error = str(exc)
                             vad = None
-                    if segmenter is not None:
-                        for utterance in segmenter.push(audio):
-                            if self.speaker_gate.verify(utterance, self.sample_rate).accepted:
-                                # Construct a fresh recognizer per authorized phrase.
-                                # No unauthorized audio is passed to Vosk.
-                                approved = KaldiRecognizer(model, self.sample_rate)
-                                approved.AcceptWaveform(utterance)
-                                phrase = json.loads(approved.FinalResult()).get('text', '').strip()
-                                if phrase and not stop_event.is_set() and (should_listen is None or should_listen()):
-                                    on_text(phrase)
+                    if worker is not None:
+                        worker.submit(audio)
                         return
                     if self.speaker_gate is not None and self.speaker_gate.enabled:
                         if len(speaker_audio) + len(audio) > max_speaker_bytes:
@@ -115,12 +109,16 @@ class VoiceInput:
                     raise sd.CallbackStop() from exc
 
             try:
+                if worker is not None:
+                    worker.start()
                 with sd.RawInputStream(
                     samplerate=self.sample_rate, blocksize=8000,
                     dtype="int16", channels=1, callback=callback
                 ) as stream:
                     failures = 0
                     while not stop_event.wait(0.1):
+                        if worker is not None and worker.error is not None:
+                            raise RuntimeError('Voice ID worker failed') from worker.error
                         if callback_error:
                             raise RuntimeError("Ошибка распознавания аудио") from callback_error[0]
                         if not getattr(stream, "active", True):
@@ -138,3 +136,6 @@ class VoiceInput:
                     ) from exc
                 if stop_event.wait(0.5 * failures):
                     break
+            finally:
+                if worker is not None:
+                    worker.stop()
