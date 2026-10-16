@@ -15,3 +15,6 @@ GitHub holds source and documentation, not live SQLite memory or secrets. Update
 
 ## Training
 Collecting data and dictionaries is not model-weight training. LoRA/QLoRA is a later separate stage requiring approved data, baselines, rented GPU, evaluation and rollback.
+
+## Deployment method (owner decision, 2026-10-16)
+Do not build a JARVIS EXE installer. Install, update, run and diagnose JARVIS via PowerShell, using the existing GitHub repository as the source. Required third-party executables (such as piper.exe) remain allowed; this does not authorize a JARVIS EXE installer. Back up before updating and preserve rollback. Test directory: D:\\JARVIS-test. Do not issue installation commands until the owner says “Выгружаем”.
