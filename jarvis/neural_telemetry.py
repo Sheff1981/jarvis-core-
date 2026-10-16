@@ -18,16 +18,8 @@ def measured_inference(adapter, prompt, clock=perf_counter,
                        memory_probe=current_process_memory):
     before = memory_probe()
     start = clock()
-    result = None
-    succeeded = False
-    try:
-        result = adapter.infer(prompt)
-        succeeded = True
-        return result, InferenceTelemetry(
-            max(0.0, (clock() - start) * 1000),
-            before.rss_bytes, memory_probe().rss_bytes,
-            result.backend, succeeded)
-    finally:
-        # The caller retains the original inference exception. No transcripts
-        # or prompts are logged by this measurement layer.
-        pass
+    result = adapter.infer(prompt)
+    return result, InferenceTelemetry(
+        max(0.0, (clock() - start) * 1000),
+        before.rss_bytes, memory_probe().rss_bytes,
+        result.backend)
