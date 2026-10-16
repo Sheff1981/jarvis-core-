@@ -236,6 +236,30 @@ class VoiceWakeIntegrationTests(unittest.TestCase):
         self.assertIn(("error", "synthetic capture failure after speech"), events)
         self.assertTrue(voice.stop_event.is_set())
 
+    def test_speech_queued_during_answer_is_not_executed(self):
+        class InputDuringReply:
+            def __init__(self):
+                self.callback = None
+
+            def listen(self, callback, stop_event, should_listen):
+                self.callback = callback
+                callback("джарвис первая команда")
+
+        class AssistantDuringReply(FakeAssistant):
+            def respond(self, phrase):
+                self.received.append(phrase)
+                if phrase == "первая команда":
+                    input_device.callback("опасная команда во время ответа")
+                return "Понял."
+
+        input_device = InputDuringReply()
+        assistant = AssistantDuringReply()
+        events = []
+        voice = VoiceSession(assistant, input_device, require_wake=True)
+        voice.run(lambda kind, value: events.append((kind, value)))
+        self.assertEqual(assistant.received, ["первая команда"])
+        self.assertFalse(any(kind == "error" for kind, _ in events))
+
     def test_wake_expires_after_idle_timeout(self):
         assistant = FakeAssistant()
         ticks = iter([0, 10, 311, 312])
