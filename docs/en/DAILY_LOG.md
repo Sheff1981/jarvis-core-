@@ -42,3 +42,7 @@ Implemented JSON project export and explicitly confirmed transactional deletion 
 
 ## 2026-10-16 — Stage 03 documentation reconciliation
 CI #1357: Windows and Ubuntu success (b7d2ecf). CURRENT_STATUS RU/EN reconciled with evidence, limitations and acceptance state. Documentation is reconciled; Stage 03 remains open pending voice idea-queue integration, disaster recovery validation and owner acceptance. No native trained weights claimed.
+
+
+## 2026-10-16 — Dialogue access to deferred ideas
+Dialogue supports Russian commands to defer/list ideas and record decisions without modifying the active next step (bcdd927). Restart and missing-project regression tests added (df57c9a). Latest CI and physical voice testing remain unverified.
