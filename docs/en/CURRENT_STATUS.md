@@ -43,3 +43,7 @@ JARVIS CORE's long-term objective is its own neural network and native engines f
 - Consecutive dialogue without repeating wake word: CI #1066 passed on Windows and Ubuntu, commit 8bb705d.
 - Physical Windows 10 acceptance remains outstanding; N0 is not closed.
 - Next: wait for “Выгружаем”, back up, update D:\\JARVIS-test via PowerShell, and run hardware checks.
+
+
+## Memory Core — 2026-10-16
+Added project_checkpoints to the existing Projects SQLite database with checkpoint/latest_checkpoint methods. Commits 471084f and 756631d. CI verification and main dialogue integration are not yet confirmed. The contour is NOT accepted. Next action: verify CI and integrate with Dialogue.
