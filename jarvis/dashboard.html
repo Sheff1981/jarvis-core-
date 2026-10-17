@@ -1,0 +1,35 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>J.A.R.V.I.S. · Control Center</title><style>
+:root{color-scheme:dark;font:15px system-ui,Segoe UI,sans-serif;background:#060e18;color:#e1f5ff}
+*{box-sizing:border-box}body{margin:0;padding:16px}header{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #24475b;padding:10px 18px 18px}
+h1{margin:0;color:#72e0ff;letter-spacing:.3em;font-size:25px}h2{font-size:13px;letter-spacing:.13em;color:#69d8ff;margin:0 0 14px}small,.muted{color:#89adbf;font-size:12px}
+main{max-width:1480px;margin:18px auto;display:grid;grid-template-columns:minmax(195px,1fr) minmax(300px,2.3fr) minmax(195px,1fr);gap:14px}
+.panel{background:linear-gradient(155deg,#10263b,#0b1929);border:1px solid #28536c;border-radius:14px;padding:18px;min-width:0}
+.stack{display:grid;gap:14px;align-content:start}.center{position:relative;min-height:500px;overflow:hidden;text-align:center;background:radial-gradient(ellipse at 50% 40%,#133a55 0%,#0a1b2d 55%,#081522 100%)}
+#avatar3d{display:block;width:100%;height:420px;max-height:60vh}
+#avatar-state{color:#77eaff;letter-spacing:.2em;font-weight:600}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:9px 0}
+strong{color:#b7edff}.indicator{display:inline-block;width:8px;height:8px;border-radius:50%;background:#6ee8ac;margin-right:6px}
+button,select,input{font:inherit;background:#122d42;color:#e5f8ff;border:1px solid #346583;border-radius:8px;padding:10px}
+button{cursor:pointer}button:hover{background:#1b4762}button:disabled{opacity:.45;cursor:default}
+input{width:100%;min-width:0}select{width:100%}
+#chat{white-space:pre-wrap;overflow-y:auto;max-height:290px;min-height:120px;padding:12px;background:#071522;border-radius:8px;line-height:1.5}
+#chat-form{display:flex;gap:8px;margin-top:10px}.dialog{grid-column:1/-1}.control{display:flex;gap:8px;flex-wrap:wrap}
+#projects{padding-left:18px;max-height:170px;overflow:auto}li{padding:5px 0}
+meter{width:100%}.hint{font-size:12px;color:#9dc1d4}
+@media(max-width:900px){main{grid-template-columns:1fr 1fr}.center{grid-column:1/-1;grid-row:1;min-height:390px}#avatar3d{height:320px}.dialog{grid-column:1/-1}}
+@media(max-width:580px){main{grid-template-columns:1fr}.center,.dialog{grid-column:1}header{padding:8px}h1{font-size:19px}}
+</style></head><body>
+<header><div><h1>J.A.R.V.I.S.</h1><small>LOCAL INTELLIGENCE CONTROL CENTER</small></div><div><span class="indicator"></span><span id="connection">Подключение…</span></div></header>
+<main>
+<aside class="stack">
+<section class="panel"><h2>СИСТЕМА</h2><div class="row"><span>Ядро</span><strong id="core">Проверка</strong></div><div class="row"><span>Ollama</span><strong id="ollama">Проверка</strong></div><div class="row"><span>CPU</span><strong id="cpu">—</strong></div><div class="row"><span>RAM</span><strong id="ram">—</strong></div><div class="hint">Данные обновляются автоматически. Недоступные показатели не подменяются числами.</div></section>
+<section class="panel"><h2>ПАМЯТЬ И ПРОЕКТЫ</h2><ul id="projects"><li>Загрузка…</li></ul><label for="project" class="muted">Активный проект</label><select id="project" aria-label="Активный проект"></select></section>
+</aside>
+<section class="panel center"><h2>ЦИФРОВОЕ ПРИСУТСТВИЕ</h2><canvas id="avatar3d" aria-label="Объёмная голографическая нейросетевая голова JARVIS"></canvas><div id="avatar-state">ОЖИДАНИЕ</div><p class="muted">Процедурная 3D-голограмма · WebGL</p></section>
+<aside class="stack">
+<section class="panel"><h2>ГОЛОС И УПРАВЛЕНИЕ</h2><div class="row"><span>Голос</span><strong id="voice-label">Не выбран</strong></div><div class="control"><button id="listen" type="button">Микрофон</button><button id="voice" type="button" aria-pressed="false">Озвучивание: выкл.</button></div><p id="voice-status" class="hint">Браузерный голос может отличаться от «Руслана».</p></section>
+<section class="panel"><h2>3D-ГРАФИКА</h2><label for="quality" class="muted">Детализация</label><select id="quality"><option value="balanced">Сбалансированная</option><option value="cinematic">Кинематографическая</option><option value="eco">Экономичная</option></select><p class="hint">Настоящая WebGL-геометрия. Режимы меняют число линий.</p></section>
+<section class="panel"><h2>СОСТОЯНИЕ</h2><p id="chat-status">Готов к подключению</p><button id="stop" type="button" disabled>Прервать ответ</button><p class="hint">Остановка прерывает браузерное получение ответа. Серверная отмена — отдельный этап.</p></section>
+</aside>
+<section class="panel dialog"><h2>ДИАЛОГ С JARVIS</h2><div id="chat" aria-live="polite">JARVIS: Панель готова. Выберите проект и задайте вопрос.</div><form id="chat-form"><input id="question" maxlength="2000" placeholder="Спроси JARVIS…" required autocomplete="off"><button id="send" type="submit">Отправить</button></form></section>
+</main><script src="/avatar3d.js"></script><script src="/dashboard.js"></script></body></html>
