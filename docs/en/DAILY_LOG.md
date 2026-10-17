@@ -74,3 +74,11 @@ Added bilingual backup and restore instructions: docs/ru/MEMORY_CORE_RECOVERY.md
 
 ## Roadmap reconciliation — 2026-10-16
 Memory Core software passed CI #1403 on Windows/Ubuntu; persistence, deferred ideas, migration, export and recovery are covered by tests, and bilingual recovery runbooks are in place. Full acceptance is not claimed without physical rehearsal/owner sign-off. NNC spec order: N0 voice-core hardware acceptance; N1/N2/N3 precede first MicroModel N4. Single next action: wait for “Выгружаем” and run N0.
+
+
+## 2026-10-17 — HEAD and GitHub Actions reconciliation
+**Branch checked:** `feature/dialogue-project-memory`. **Audited HEAD:** `1cf6a798075bfd668cfaebf771dcff061d66228b` (commit dated 2026-10-16 15:27:32 UTC). Comparing it with functional checkpoint `c801dc47bef1bdc2bb13e1ac3b5c9e69df321b25` shows 16 subsequent documentation-only commits; no functional code changed after that checkpoint.
+**Verified checks:** GitHub Actions #1403 for `c801dc4` succeeded on `windows-latest` and `ubuntu-24.04`; #1428 (push) and #1429 (pull request) for HEAD `1cf6a79` succeeded on both platforms. The latest two runs validate the current documentation revision; the functional checkpoint is covered by #1403.
+**Confirmed state:** Memory Core / Stage 03 software criteria are documented as complete to the extent covered by automated tests; RU/EN recovery runbooks are present. Neural Core was not reopened. `main` was not changed.
+**Blockers:** Physical Voice Core N0 acceptance on Windows 10, resource measurements and acceptance record remain outstanding; a manual Memory Core backup-recovery rehearsal and owner sign-off are also outstanding. Passing CI does not replace these checks.
+**Next task (do not change stage):** wait for the owner's “Выгружаем” command, then back up the test installation and follow `docs/ru/VOICE_N0_ACCEPTANCE.md`. Do not update the laptop before authorization.
