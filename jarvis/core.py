@@ -3,6 +3,7 @@ import sqlite3
 import time
 import uuid
 
+
 class Memory:
     def __init__(self, path='jarvis.db'):
         self.db = sqlite3.connect(path)
@@ -23,3 +24,14 @@ class Memory:
 
     def list(self):
         return self.db.execute('SELECT id, name, platform FROM scenarios ORDER BY created DESC').fetchall()
+
+    def close(self):
+        if self.db is not None:
+            self.db.close()
+            self.db = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
