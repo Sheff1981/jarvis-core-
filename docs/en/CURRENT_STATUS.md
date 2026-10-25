@@ -93,3 +93,11 @@ Requirements source: JARVIS CORE ENGINEERING SPECIFICATION, Stage 03 «Memory an
 - Status: Memory Core software implementation and automated checks are complete. Physical laptop restore rehearsal and owner sign-off remain outstanding; do not claim full product sign-off.
 - Sequence from the source documents: N0 — physical voice-core acceptance; N1 — server training audit; N2 — unified memory/knowledge base; N3 — Dataset Factory; N4 — JARVIS MicroModel with its own tokenizer. Do not skip to N4.
 - Single next action: wait for “Выгружаем”, then perform the safe update and N0 Windows 10 protocol.
+
+## Verification checkpoint — 2026-10-25
+- Branch checkpoint for `feature/dialogue-project-memory`: `8c8e2d007a79e5b1594206625e21b239bcc4194d`.
+- The inspected documentation commits were limited to `docs/ru/DAILY_LOG.md` (`27646b794b61895d2814ef9e72f251ef582e6a19`) and `docs/en/DAILY_LOG.md` (`8c8e2d007a79e5b1594206625e21b239bcc4194d`). Functional code and tests were not changed by these commits.
+- GitHub Actions #1453 (run ID `40067653084`, pull-request run): `test (windows-latest)` and `test (ubuntu-24.04)` succeeded.
+- This confirms automated checks for the referenced commit, not physical acceptance. Existing blockers remain: Voice Core N0 hardware acceptance and Windows 10 resource measurements; manual Memory Core backup-restore rehearsal and owner sign-off.
+- `main` and the active roadmap stage remain unchanged.
+- The next task is unchanged: after the owner says “Выгружаем”, back up the test installation and follow `docs/ru/VOICE_N0_ACCEPTANCE.md`.
