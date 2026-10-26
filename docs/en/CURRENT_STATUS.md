@@ -101,3 +101,11 @@ Requirements source: JARVIS CORE ENGINEERING SPECIFICATION, Stage 03 «Memory an
 - This confirms automated checks for the referenced commit, not physical acceptance. Existing blockers remain: Voice Core N0 hardware acceptance and Windows 10 resource measurements; manual Memory Core backup-restore rehearsal and owner sign-off.
 - `main` and the active roadmap stage remain unchanged.
 - The next task is unchanged: after the owner says “Выгружаем”, back up the test installation and follow `docs/ru/VOICE_N0_ACCEPTANCE.md`.
+
+## Verification checkpoint — 2026-10-26
+- Audited HEAD on `feature/dialogue-project-memory` before this entry: `3ab6d0aa8e229f262b4d9d28501b86f9b64533f5`; comparison with the branch returned `identical`, with no commits after the checkpoint.
+- GitHub Actions #1459 (run ID `40166245759`) for this SHA completed successfully: `test (windows-latest)` and `test (ubuntu-24.04)`, including the `Run unit tests` step, succeeded.
+- This confirms automated checks for the referenced SHA, not physical acceptance. Blockers remain: Voice Core N0 hardware acceptance and Windows 10 resource measurements; manual Memory Core backup-restore rehearsal and owner sign-off.
+- `main` and the roadmap stage were not changed.
+- Next task remains: after the owner says “Выгружаем”, back up the test installation and follow `docs/ru/VOICE_N0_ACCEPTANCE.md`.
+
