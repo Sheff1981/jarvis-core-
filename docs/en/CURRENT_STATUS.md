@@ -116,3 +116,11 @@ Requirements source: JARVIS CORE ENGINEERING SPECIFICATION, Stage 03 «Memory an
 - This is an automated CI result, not physical laptop acceptance. Existing blockers remain: Voice Core N0 hardware acceptance and Windows 10 resource measurements; manual Memory Core backup restoration and owner sign-off.
 - `main` remains at `7cfdadeefe7b6e82c820aa30e23645c0b656b116`; `main` and the roadmap stage were not changed.
 - Next task remains: after the owner says “Выгружаем”, back up the test installation and follow `docs/ru/VOICE_N0_ACCEPTANCE.md`.
+
+## CI verification checkpoint — 2026-10-29
+- Branch HEAD before this entry: `115ce75ca25c697274593823cf71cd74409071a3`. The latest October 28 commits touched only `docs/ru/DAILY_LOG.md` and `docs/en/DAILY_LOG.md`; functional code and tests were unchanged.
+- GitHub Actions #1468 (run ID `40639378452`), #1469 (`40639381856`), and #1470 (`40639384816`, pull request) completed successfully. `Run unit tests` succeeded on `windows-latest` and `ubuntu-24.04`.
+- This confirms automated CI for documentation revisions, not physical device acceptance.
+- Existing blockers remain: Voice Core N0 hardware acceptance and Windows 10 resource measurements; manual Memory Core backup-restore rehearsal and owner sign-off.
+- `main` remains at `7cfdadeefe7b6e82c820aa30e23645c0b656b116`; the roadmap stage is unchanged.
+- Next task: after the owner says “Выгружаем”, back up the test installation and follow `docs/ru/VOICE_N0_ACCEPTANCE.md`.
