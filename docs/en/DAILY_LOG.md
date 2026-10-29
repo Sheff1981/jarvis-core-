@@ -109,3 +109,10 @@ Checked branch `feature/dialogue-project-memory`; audited HEAD is `c1f27b0b0abe7
 
 ## 2026-10-28 — daily audit: no changes detected (изменений не обнаружено)
 Checked branch `feature/dialogue-project-memory`; HEAD remains `ca1bf8f463ff33eb1d48d1c4a491c0d2a910033a`, with no commits after this checkpoint. GitHub Actions #1466 (push, run ID `40458284739`) and #1467 (pull request, run ID `40458287578`) for SHA `ca1bf8f` completed successfully: `Run unit tests` succeeded on `windows-latest` and `ubuntu-24.04`. `main` remains at `7cfdadeefe7b6e82c820aa30e23645c0b656b116`; status files and roadmap stage were not changed. Existing blockers remain: Voice Core N0 hardware acceptance and Windows 10 resource measurements are incomplete; the manual Memory Core backup-restore rehearsal and owner sign-off remain outstanding. Next task: after the owner says “Выгружаем”, back up the test installation and follow `docs/ru/VOICE_N0_ACCEPTANCE.md`.
+
+## 2026-10-29 — daily audit: CI results confirmed
+Audited branch `feature/dialogue-project-memory`. Checkpoint HEAD before this entry: `115ce75ca25c697274593823cf71cd74409071a3`; no functional code changes were found. Commits `4ecfc6ed7482fcc94cf7953b4d93b725202c1af1` and `115ce75ca25c697274593823cf71cd74409071a3` updated only the Russian and English daily logs, respectively.
+**GitHub Actions:** #1468 (run ID `40639378452`), #1469 (`40639381856`), and #1470 (`40639384816`, pull request) completed successfully. The `Run unit tests` step succeeded on Windows (`windows-latest`) and Ubuntu (`ubuntu-24.04`). This confirms CI for documentation-only revisions; those commits did not change functional code or tests.
+**Blockers unchanged:** Voice Core N0 hardware acceptance and Windows 10 resource measurements remain incomplete; the manual Memory Core backup-restore rehearsal and owner sign-off remain outstanding.
+`main` remains at `7cfdadeefe7b6e82c820aa30e23645c0b656b116`; the roadmap stage is unchanged.
+**Next task:** after the owner says “Выгружаем”, back up the test installation and follow `docs/ru/VOICE_N0_ACCEPTANCE.md`.
