@@ -1,0 +1,122 @@
+# JARVIS CORE — daily development log
+
+## 2026-10-16 — time not recorded
+**Task:** audit current status and establish a single development workflow.
+**Verified:** key modules and documents on feature/dialogue-project-memory reviewed; HEAD 88fac0d7d76de5d1351f61bdc82cc46dc6f122f0; GitHub Actions #983 succeeded; branch 510 commits ahead of main.
+**Findings:** overlapping memory components, unverified end-to-end voice behavior, unverified laptop–GitHub–server synchronization, no actual LoRA or custom-trained voice.
+**Process update:** introduced Russian and English protocol, status and log. Documentation does not prove runtime functionality.
+**Stopping point:** before wake-word → VoiceSession → Assistant → Ollama → Piper integration audit.
+**Next action:** inspect this path and regression tests; do not add new subsystems.
+**Real laptop testing:** not performed in this session.
+
+**2026-10-16 addendum (time not recorded):** preserved “Привет, Джарвис” through VoiceSession (5211767); added regression test (7b2f428). GitHub Actions for latest commit not yet verified; real microphone test not performed. **Next:** confirm CI and run a laptop voice test.
+
+**2026-10-16 — CI verification:** GitHub Actions run #1000 for commit a7a707c: Windows success, Ubuntu 24.04 success. The greeting fix passed automated tests. Microphone, Ollama and Piper have not been tested on the laptop. Next: physical voice test.
+
+**2026-10-16 — N0 checkpoint:** bilingual acceptance protocols added (2adad7f, 66a72e7). GitHub Actions #1015 passed on Windows and Ubuntu 24.04. Physical laptop E2E has not been performed. Next: prepare and test code remotely, then run laptop acceptance after 20:00 when available.
+
+**2026-10-16 — N0 greeting regression:** normalized “Привет, Джарвис” punctuation (f6c5ce6); added punctuation/case regression cases (efc099e). CI #1025 passed Windows and Ubuntu; both jobs of #1027 passed (workflow overall still in_progress when checked). Physical laptop E2E pending. No JARVIS EXE installer; PowerShell-only updates.
+
+**2026-10-16 — N0 stabilization:** Added sleep/mute/stop, SQLite conversation restoration, microphone failure, and ten sequential dialogue tests. CI #1043 passed on Windows/Ubuntu. Broadened TTS exception handling (6c6403b), added Piper-failure next-response regression (2fefe03), CI #1047: both jobs passed. Added safe PowerShell update checklist (7fbc653), CI #1049: success. No physical laptop E2E was performed; N0 is NOT accepted. Next: upon explicit “Выгружаем”, back up and update the test installation, then complete the ten-point acceptance protocol.
+
+**2026-10-16 — N0 / queue and dialogue continuation:** CI #1058 (65af004) passed on Windows/Ubuntu, microphone errors are retained during queue cleanup; CI #1060 (f207035) both jobs passed, speech during reply is discarded; CI #1062 (16392c9) passed, busy gate clears; CI #1066 (8bb705d) passed, a follow-up utterance without another wake word is processed. Physical end-to-end testing has not occurred. Next: after “Выгружаем”, back up, update, and perform N0 laptop acceptance.
+
+**2026-10-16 — N0 / batched VAD stabilization:** Implemented opt-in diagnostic pipeline EnergyVAD → AudioFrameBuffer → SpeechActivityTracker → VADStream. VoiceInput has --vad-diagnostics counters and fail-open handling for detector creation, reset and frame processing failures. Vosk still receives unfiltered PCM. Regression tests cover VAD crashes, streaming and recovery. CI #1122 passed Windows/Ubuntu; latest batch CI needs confirmation. This is **not** neural VAD, barge-in or physical N0 acceptance. Do not update the laptop until the owner says “Выгружаем”.
+
+
+## 2026-10-16 — Memory Core
+Added durable project checkpoints to existing SQLite (471084f) and regression tests (756631d). CI and target-environment recovery have not been confirmed. Schema extension is non-destructive; private journal unchanged. Next action: verify CI and Dialogue integration.
+
+
+## 2026-10-16 — Memory Core continuation
+Integrated Dialogue (ccf7cf7), restart tests (55a8d74), CI #1331 success. Added SQLite backup (511eb58), shared-database restore test (4fca822). Final CI unconfirmed. Main branch and laptop unchanged.
+
+
+## 2026-10-16 — Memory Core, decision log and idea queue
+Added project_decisions and project_ideas to existing SQLite (a03f630), restart, project-isolation and active-task preservation tests (96489e2). CI for new commits awaits confirmation. Next: export/deletion and final acceptance.
+
+
+## 2026-10-16 — Stage 03: export and deletion
+Implemented JSON project export and explicitly confirmed transactional deletion (ae13729); isolation and shared-history regression test (b6504d6). Latest CI not yet confirmed. Durable checkpoint acceptance gate awaits final CI and migration recovery verification.
+
+
+## 2026-10-16 — Stage 03 documentation reconciliation
+CI #1357: Windows and Ubuntu success (b7d2ecf). CURRENT_STATUS RU/EN reconciled with evidence, limitations and acceptance state. Documentation is reconciled; Stage 03 remains open pending voice idea-queue integration, disaster recovery validation and owner acceptance. No native trained weights claimed.
+
+
+## 2026-10-16 — Dialogue access to deferred ideas
+Dialogue supports Russian commands to defer/list ideas and record decisions without modifying the active next step (bcdd927). Restart and missing-project regression tests added (df57c9a). Latest CI and physical voice testing remain unverified.
+
+
+## 2026-10-16 — Save checkpoints through Dialogue
+Added explicit `контрольная точка: stage; task; status; next step; blockers (optional)` command with status validation and SQLite persistence (2311b93). Added restart-persistence and invalid-input tests (8c35ef7). CI for this commit awaits confirmation.
+
+
+## 2026-10-16 — Explicit backup restore
+Added `Projects.restore_backup(source, destination)`: validates SQLite integrity and the projects table, restores only to a new path, refuses overwrite, and cleans partial output on failure (cf002f6). Added restore/validation regression test (c9fd67c). CI awaits confirmation.
+
+
+## 2026-10-16 — Dialogue project export and deletion
+Added Russian commands for exact-name project export and deletion gated by a separate confirmation; mismatched confirmation cancels deletion (3d01a19). Tests cover JSON export, mismatch protection and conversation-history preservation (c81fd92). CI run #1393 is in progress.
+
+
+## 2026-10-16 — Deletion confirmation safety
+Review found pending deletion could survive an unrelated utterance. Fixed: cancel, stop and any unrelated input clear the pending deletion; added regression test (0bb6f90, c801dc4). CI for this fix is pending.
+
+
+## CI result — Memory Core, 2026-10-16
+GitHub Actions #1403 passed: Windows and Ubuntu success for c801dc4. Automated regression coverage for export/deletion and cancellation of pending deletion is green. Hardware acceptance and manual restore procedure remain outstanding.
+
+
+## 2026-10-16 — Memory Core recovery runbook
+Added bilingual backup and restore instructions: docs/ru/MEMORY_CORE_RECOVERY.md and docs/en/MEMORY_CORE_RECOVERY.md. The runbook covers integrity checks, overwrite protection and automated-test limits; physical rehearsal remains deferred until “Выгружаем”.
+
+
+## Roadmap reconciliation — 2026-10-16
+Memory Core software passed CI #1403 on Windows/Ubuntu; persistence, deferred ideas, migration, export and recovery are covered by tests, and bilingual recovery runbooks are in place. Full acceptance is not claimed without physical rehearsal/owner sign-off. NNC spec order: N0 voice-core hardware acceptance; N1/N2/N3 precede first MicroModel N4. Single next action: wait for “Выгружаем” and run N0.
+
+
+## 2026-10-17 — HEAD and GitHub Actions reconciliation
+**Branch checked:** `feature/dialogue-project-memory`. **Audited HEAD:** `1cf6a798075bfd668cfaebf771dcff061d66228b` (commit dated 2026-10-16 15:27:32 UTC). Comparing it with functional checkpoint `c801dc47bef1bdc2bb13e1ac3b5c9e69df321b25` shows 16 subsequent documentation-only commits; no functional code changed after that checkpoint.
+**Verified checks:** GitHub Actions #1403 for `c801dc4` succeeded on `windows-latest` and `ubuntu-24.04`; #1428 (push) and #1429 (pull request) for HEAD `1cf6a79` succeeded on both platforms. The latest two runs validate the current documentation revision; the functional checkpoint is covered by #1403.
+**Confirmed state:** Memory Core / Stage 03 software criteria are documented as complete to the extent covered by automated tests; RU/EN recovery runbooks are present. Neural Core was not reopened. `main` was not changed.
+**Blockers:** Physical Voice Core N0 acceptance on Windows 10, resource measurements and acceptance record remain outstanding; a manual Memory Core backup-recovery rehearsal and owner sign-off are also outstanding. Passing CI does not replace these checks.
+**Next task (do not change stage):** wait for the owner's “Выгружаем” command, then back up the test installation and follow `docs/ru/VOICE_N0_ACCEPTANCE.md`. Do not update the laptop before authorization.
+
+
+## 2026-10-18 — daily audit: no changes detected
+Compared `feature/dialogue-project-memory` with the previously verified HEAD `42add2765d6c286ba188dd83761fdb276b3b4c49`; comparison returned `identical`. No new commits or file changes were found. GitHub Actions #1433 for the current HEAD completed successfully. No new test results for the past day were detected. Blockers unchanged: physical Voice Core N0 acceptance on Windows 10 and the manual Memory Core backup-restore rehearsal remain outstanding. Next task, without changing stages: after the owner says “Выгружаем”, back up the test installation and follow `docs/ru/VOICE_N0_ACCEPTANCE.md`. CURRENT_STATUS was not changed.
+
+
+## 2026-10-20 — daily audit: no new functional changes detected
+Branch HEAD: `e49f1ba89f4085ed632d177ebce7404308c5b510`. Compare from `cdd98488be8f364ef9e1310ffd8edd3cdda6962e` shows one documentation-only commit touching `docs/ru/DAILY_LOG.md`; no functional code or tests changed. GitHub Actions #1438 (push, run `39205219506`) and #1439 (pull request, run `39205224409`) passed; unit-test jobs passed on Windows and Ubuntu. Blockers unchanged: physical Voice Core N0 acceptance/resource measurements and manual Memory Core backup-restore rehearsal. Next: after “Выгружаем”, back up the test installation and follow `docs/ru/VOICE_N0_ACCEPTANCE.md`. `main` and roadmap stage unchanged.
+
+
+## 2026-10-21 — daily audit: no functional changes detected
+Audited HEAD `7e807a1f00a06aed01703498bbaa7e69738c5e87`; one documentation-only commit since `e49f1ba89f4085ed632d177ebce7404308c5b510`. GitHub Actions #1440 (push, run 39376186105) and #1441 (pull request, run 39376190988) passed unit tests on Windows and Ubuntu. Blockers unchanged: Voice Core N0 hardware acceptance/resource measurements and Memory Core manual backup-restore rehearsal/owner sign-off remain outstanding. Next task: after “Выгружаем”, back up the test installation and run `docs/ru/VOICE_N0_ACCEPTANCE.md`. `main` and roadmap stage unchanged.
+
+## 2026-10-24 — daily audit: no changes detected
+Audited branch `feature/dialogue-project-memory`. HEAD at audit time: `118ea5d52e38ddb3d72766190648276411e0ea2c`; `main` HEAD: `7cfdadeefe7b6e82c820aa30e23645c0b656b116`. No new commits or GitHub Actions runs were found after 2026-10-22. The latest runs for HEAD `118ea5d` were #1448 (push) and #1449 (pull request); both completed successfully. Jobs `test (windows-latest)` and `test (ubuntu-24.04)` succeeded in both runs. No functional changes were detected. Blockers unchanged: physical Voice Core N0 acceptance and resource measurements on Windows 10 remain incomplete; the manual Memory Core backup-restore rehearsal and owner sign-off remain outstanding. `main` and the roadmap stage were not changed. Next task: after the owner says “Выгружаем”, back up the test installation and follow `docs/ru/VOICE_N0_ACCEPTANCE.md`. `CURRENT_STATUS.md` remains unchanged.
+
+## 2026-10-25 — CI audit: new result confirmed
+Branch checkpoint for `feature/dialogue-project-memory`: `8c8e2d007a79e5b1594206625e21b239bcc4194d`. The inspected commits `27646b794b61895d2814ef9e72f251ef582e6a19` and `8c8e2d007a79e5b1594206625e21b239bcc4194d` changed only `docs/ru/DAILY_LOG.md` and `docs/en/DAILY_LOG.md`, respectively; neither changed functional code or tests. GitHub Actions #1453 (run ID `40067653084`, pull-request run) completed successfully: `test (windows-latest)` and `test (ubuntu-24.04)` both succeeded. Blockers are unchanged: Voice Core N0 hardware acceptance and Windows 10 resource measurements remain incomplete; the manual Memory Core backup-restore rehearsal and owner sign-off remain outstanding. `main` and the roadmap stage were not changed. Next task: after the owner says “Выгружаем”, back up the test installation and follow `docs/ru/VOICE_N0_ACCEPTANCE.md`.
+
+## 2026-10-26 — daily audit: CI result confirmed
+Checked branch `feature/dialogue-project-memory`; audited HEAD before this documentation entry: `3ab6d0aa8e229f262b4d9d28501b86f9b64533f5`. Comparing that SHA with the branch returned `identical`: no commits after the checkpoint and no functional changes were found for the reviewed period. GitHub Actions #1459 (run ID `40166245759`) completed successfully; `test (windows-latest)` and `test (ubuntu-24.04)`, including the `Run unit tests` step, succeeded. This result applies to SHA `3ab6d0a`; it is not physical laptop acceptance. Blockers are unchanged: Voice Core N0 hardware acceptance and Windows 10 resource measurements are outstanding; the manual Memory Core backup-restore rehearsal and owner sign-off are outstanding. `main` and the roadmap stage were not changed. Next task: after the owner says “Выгружаем”, back up the test installation and follow `docs/ru/VOICE_N0_ACCEPTANCE.md`.
+
+## 2026-10-27 — daily audit: CI completed successfully
+Checked branch `feature/dialogue-project-memory`; audited HEAD is `c1f27b0b0abe73c0f6f82a2efd750318caac9cf6`. No commits were found after this SHA. GitHub Actions #1464 (push, run ID `40273844348`) and #1465 (pull request, run ID `40273845817`) for SHA `c1f27b0` completed successfully. The `Run unit tests` step succeeded on both Windows (`windows-latest`) and Ubuntu (`ubuntu-24.04`). This confirms automated CI tests for the referenced SHA, not physical laptop acceptance. `main` remains at `7cfdadeefe7b6e82c820aa30e23645c0b656b116`; `main` and the roadmap stage were not changed. Blockers are unchanged: Voice Core N0 hardware acceptance and Windows 10 resource measurements remain incomplete; the manual Memory Core backup-restore rehearsal and owner sign-off remain outstanding. Next task: after the owner says “Выгружаем”, back up the test installation and follow `docs/ru/VOICE_N0_ACCEPTANCE.md`.
+
+## 2026-10-28 — daily audit: no changes detected (изменений не обнаружено)
+Checked branch `feature/dialogue-project-memory`; HEAD remains `ca1bf8f463ff33eb1d48d1c4a491c0d2a910033a`, with no commits after this checkpoint. GitHub Actions #1466 (push, run ID `40458284739`) and #1467 (pull request, run ID `40458287578`) for SHA `ca1bf8f` completed successfully: `Run unit tests` succeeded on `windows-latest` and `ubuntu-24.04`. `main` remains at `7cfdadeefe7b6e82c820aa30e23645c0b656b116`; status files and roadmap stage were not changed. Existing blockers remain: Voice Core N0 hardware acceptance and Windows 10 resource measurements are incomplete; the manual Memory Core backup-restore rehearsal and owner sign-off remain outstanding. Next task: after the owner says “Выгружаем”, back up the test installation and follow `docs/ru/VOICE_N0_ACCEPTANCE.md`.
+
+## 2026-10-29 — daily audit: CI results confirmed
+Audited branch `feature/dialogue-project-memory`. Checkpoint HEAD before this entry: `115ce75ca25c697274593823cf71cd74409071a3`; no functional code changes were found. Commits `4ecfc6ed7482fcc94cf7953b4d93b725202c1af1` and `115ce75ca25c697274593823cf71cd74409071a3` updated only the Russian and English daily logs, respectively.
+**GitHub Actions:** #1468 (run ID `40639378452`), #1469 (`40639381856`), and #1470 (`40639384816`, pull request) completed successfully. The `Run unit tests` step succeeded on Windows (`windows-latest`) and Ubuntu (`ubuntu-24.04`). This confirms CI for documentation-only revisions; those commits did not change functional code or tests.
+**Blockers unchanged:** Voice Core N0 hardware acceptance and Windows 10 resource measurements remain incomplete; the manual Memory Core backup-restore rehearsal and owner sign-off remain outstanding.
+`main` remains at `7cfdadeefe7b6e82c820aa30e23645c0b656b116`; the roadmap stage is unchanged.
+**Next task:** after the owner says “Выгружаем”, back up the test installation and follow `docs/ru/VOICE_N0_ACCEPTANCE.md`.
+
+
+## 2026-10-30 — daily audit: no changes detected (изменений не обнаружено)
+Checked branch `feature/dialogue-project-memory`; audited HEAD: `bffa6a640bb7b538345ab9264736bccf09cc35e6`. No commits were found after the previous audit checkpoint. The October 29 comparison contained changes only in four documentation files (`docs/ru/DAILY_LOG.md`, `docs/en/DAILY_LOG.md`, `docs/ru/CURRENT_STATUS.md`, and `docs/en/CURRENT_STATUS.md`); functional code and tests were unchanged. GitHub Actions #1475 (push, run ID `40823266312`) and #1476 (pull request, run ID `40823272859`) for HEAD `bffa6a6` completed successfully: `Run unit tests` succeeded on `windows-latest` and `ubuntu-24.04`. `main` remains at `7cfdadeefe7b6e82c820aa30e23645c0b656b116`; `main` and the roadmap stage were not changed. Blockers remain unchanged: Voice Core N0 hardware acceptance and Windows 10 resource measurements are outstanding; the manual Memory Core backup-restore rehearsal and owner sign-off remain outstanding. Next task: after the owner says “Выгружаем”, back up the test installation and follow `docs/ru/VOICE_N0_ACCEPTANCE.md`. Neither `CURRENT_STATUS.md` file was changed during this audit.
